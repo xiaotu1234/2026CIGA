@@ -1,3 +1,9 @@
+## Unity generated folders
+/Library/
+/Temp/
+/Logs/
+/UserSettings/
+
 Library/AnnotationManager
 Library/APIUpdater/project-dependencies.graph
 Library/ArtifactDB
