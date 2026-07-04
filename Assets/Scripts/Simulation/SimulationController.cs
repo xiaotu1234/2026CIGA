@@ -41,7 +41,12 @@ namespace BrokenAnchor.Simulation
         private float anchorDamage;
         private int brokenJoints;
         private float anchorScale = 0.55f;
+        private float simulationElapsed;
+        private float shipVelocity;
+        private bool anchorOnSeabed;
         private Coroutine running;
+
+        private const float WaterEntryDuration = 0.8f;
 
         public void Initialize(
             RectTransform playArea,
@@ -84,9 +89,31 @@ namespace BrokenAnchor.Simulation
             ResetVisuals();
             BuildAnchorVisual();
             BuildUnevenSeabed();
-            yield return RunStage("入水冲击", 3.5f, WaterEntryTick);
-            yield return RunStage("下沉拉扯", 6.5f, SinkTick);
-            yield return RunStage("触底稳船", level.stableDuration, SeabedTick);
+
+            while (simulationElapsed < level.stableDuration && remainingDistance > 0f)
+            {
+                var deltaTime = Time.deltaTime;
+                simulationElapsed += deltaTime;
+
+                if (simulationElapsed <= WaterEntryDuration)
+                {
+                    stageText.text = "入水冲击";
+                    WaterEntryTick(simulationElapsed / WaterEntryDuration, deltaTime);
+                }
+                else if (!anchorOnSeabed)
+                {
+                    stageText.text = "下沉中";
+                    SinkTick(deltaTime);
+                }
+                else
+                {
+                    stageText.text = "触底拖拽";
+                    SeabedTick(deltaTime);
+                }
+
+                UpdateMetrics(Mathf.Max(0f, level.stableDuration - simulationElapsed));
+                yield return null;
+            }
 
             var result = ResultEvaluator.Evaluate(build, level, remainingDistance, anchorDamage, brokenJoints);
             onFinished?.Invoke(result);
@@ -106,41 +133,63 @@ namespace BrokenAnchor.Simulation
             }
         }
 
-        private void WaterEntryTick(float t)
+        private void WaterEntryTick(float t, float deltaTime)
         {
             anchor.anchoredPosition = Vector2.Lerp(new Vector2(-170f, 145f), new Vector2(-130f, 40f), t);
-            ship.anchoredPosition = Vector2.Lerp(new Vector2(-250f, 150f), new Vector2(-232f, 150f), t);
             anchorDamage = Mathf.Max(anchorDamage, Mathf.Clamp01((1.25f - AverageJointStrength()) * 0.35f));
             brokenJoints = anchorDamage > 0.28f && build.joints.Count > 0 ? 1 : 0;
             AnimateAnchorPieces(t, 0.35f + anchorDamage, false);
+            ApplyShipCurrent(deltaTime, 0.2f);
             DrawRope();
         }
 
-        private void SinkTick(float t)
+        private void SinkTick(float deltaTime)
         {
-            anchor.anchoredPosition = Vector2.Lerp(new Vector2(-130f, 40f), new Vector2(-55f, -110f), t);
-            ship.anchoredPosition += new Vector2(Time.deltaTime * 8f, 0f);
+            var sinkSpeed = Mathf.Clamp(58f + build.totalWeight * 0.12f - build.dragScore * 8f, 46f, 92f);
+            var currentPush = 14f + level.currentForceBase * 1.4f;
+            anchor.anchoredPosition += new Vector2(currentPush * deltaTime * 0.35f, -sinkSpeed * deltaTime);
+
             var stress = Mathf.Max(0f, level.currentForceBase - build.totalWeight * 0.025f);
-            anchorDamage = Mathf.Clamp01(anchorDamage + stress * Time.deltaTime * 0.012f);
+            anchorDamage = Mathf.Clamp01(anchorDamage + stress * deltaTime * 0.012f);
             if (anchorDamage > 0.55f && build.joints.Count > 1)
             {
                 brokenJoints = Mathf.Max(brokenJoints, 2);
             }
 
-            AnimateAnchorPieces(t, 0.65f + anchorDamage * 1.2f, false);
+            AnimateAnchorPieces(Mathf.Clamp01(simulationElapsed / level.stableDuration), 0.65f + anchorDamage * 1.2f, false);
+            if (CountSeabedContacts() > 0)
+            {
+                anchorOnSeabed = true;
+                AnimateAnchorPieces(1f, 0.45f + anchorDamage, true);
+            }
+
+            ApplyShipCurrent(deltaTime, 0.45f);
             DrawRope();
         }
 
-        private void SeabedTick(float t)
+        private void SeabedTick(float deltaTime)
         {
-            var holdPower = build.gripScore * 11f + build.totalWeight * 0.045f + build.dragScore * 2.5f;
-            var drift = Mathf.Max(1.2f, level.currentForceBase * 2.25f - holdPower);
-            remainingDistance = Mathf.Max(0f, remainingDistance - drift * Time.deltaTime);
-            ship.anchoredPosition += new Vector2(drift * Time.deltaTime * 2.2f, 0f);
-            anchor.anchoredPosition = Vector2.Lerp(anchor.anchoredPosition, new Vector2(-10f, -150f), Time.deltaTime * 1.5f);
-            progressSlider.value = 1f - remainingDistance / level.dangerZoneDistance;
-            AnimateAnchorPieces(t, 0.45f + anchorDamage, true);
+            anchor.anchoredPosition += new Vector2(Mathf.Max(0.3f, shipVelocity) * deltaTime * 0.35f, 0f);
+            ApplyShipCurrent(deltaTime, 1f);
+            AnimateAnchorPieces(Mathf.Clamp01(simulationElapsed / level.stableDuration), 0.45f + anchorDamage, true);
             DrawRope();
+        }
+
+        private void ApplyShipCurrent(float deltaTime, float anchorEffectiveness)
+        {
+            var currentAcceleration = 26f + level.currentForceBase * 2.4f;
+            var preTouchHold = build.dragScore * 1.2f + build.totalWeight * 0.015f;
+            var seabedHold = build.gripScore * 12f + build.totalWeight * 0.06f + build.dragScore * 2.4f;
+            var holdPower = Mathf.Lerp(preTouchHold, seabedHold, anchorOnSeabed ? 1f : anchorEffectiveness);
+            holdPower *= Mathf.Clamp01(1f - anchorDamage * 0.75f);
+
+            var waterDrag = shipVelocity * (anchorOnSeabed ? 0.95f + holdPower * 0.035f : 0.12f);
+            shipVelocity += (currentAcceleration - holdPower * (anchorOnSeabed ? 1.45f : 0.35f) - waterDrag) * deltaTime;
+            shipVelocity = Mathf.Clamp(shipVelocity, 0f, 42f);
+
+            remainingDistance = Mathf.Max(0f, remainingDistance - shipVelocity * deltaTime);
+            ship.anchoredPosition += new Vector2(shipVelocity * deltaTime * 4f, 0f);
+            progressSlider.value = 1f - remainingDistance / level.dangerZoneDistance;
         }
 
         private float AverageJointStrength()
@@ -165,6 +214,9 @@ namespace BrokenAnchor.Simulation
             anchor.anchoredPosition = new Vector2(-170f, 145f);
             anchor.localRotation = Quaternion.identity;
             progressSlider.value = 0f;
+            simulationElapsed = 0f;
+            shipVelocity = 0f;
+            anchorOnSeabed = false;
             ClearAnchorVisual();
             DrawRope();
         }
@@ -196,10 +248,11 @@ namespace BrokenAnchor.Simulation
         {
             metricText.text =
                 $"危险区剩余距离：{remainingDistance:0.0} m\n" +
+                $"船速：{shipVelocity:0.0} m/s\n" +
                 $"船锚损伤：{anchorDamage * 100f:0}%\n" +
                 $"断开连接：{brokenJoints}\n" +
                 $"海底接触：{CountSeabedContacts()} 个部件\n" +
-                $"阶段剩余：{Mathf.Max(0f, remainingStageTime):0.0} s";
+                $"稳船剩余：{Mathf.Max(0f, remainingStageTime):0.0} s";
         }
 
         private void BuildAnchorVisual()
