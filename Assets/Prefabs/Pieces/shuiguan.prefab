@@ -201,7 +201,7 @@ MonoBehaviour:
     gripCoeff: 1.2
     color: {r: 0.74, g: 0.78, b: 0.78, a: 1}
     hasHookShape: 1
-    prefabAssetPath: Assets/Prefabs/Pieces/jshuiguan.prefab
+    prefabAssetPath: Assets/Prefabs/Pieces/shuiguan.prefab
 --- !u!60 &1263235665641088649
 PolygonCollider2D:
   m_ObjectHideFlags: 0
