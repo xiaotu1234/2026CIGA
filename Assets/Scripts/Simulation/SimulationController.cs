@@ -58,6 +58,7 @@ namespace BrokenAnchor.Simulation
         private const float PhysicsScale = 0.012f;
         private const float InversePhysicsScale = 1f / PhysicsScale;
         private const float InitialGravityScale = 4.2f;
+        private const float MinEffectiveJointHealth = 0.01f;
 
         private static readonly Vector2 InitialAnchorPosition = new Vector2(-170f, 145f);
 
@@ -236,11 +237,17 @@ namespace BrokenAnchor.Simulation
                     continue;
                 }
 
-                var delta = pieceA.body.position - pieceB.body.position;
-                var relativeVelocity = (pieceA.body.velocity - pieceB.body.velocity).magnitude;
-                var stress = relativeVelocity * 0.18f + Mathf.Max(0f, delta.magnitude - joint.initialAttachLength * PhysicsScale) * 2.6f;
-                var resistance = Mathf.Max(0.2f, joint.currentStrength * 0.015f);
-                joint.damage = Mathf.Clamp01(joint.damage + Mathf.Max(0f, stress - resistance) * deltaTime * 0.14f);
+                if (joint.maxHealth <= MinEffectiveJointHealth)
+                {
+                    BreakJoint(joint, pieceA, pieceB);
+                    continue;
+                }
+
+                var attack = GetCurrentWaterAttack();
+                var damagePerSecond = Mathf.Max(0f, attack - joint.defense) * joint.damageFalloff;
+                joint.currentHealth = Mathf.Max(0f, joint.currentHealth - damagePerSecond * deltaTime);
+                joint.currentStrength = joint.currentHealth;
+                joint.damage = Mathf.Clamp01(1f - joint.currentHealth / joint.maxHealth);
 
                 if (joint.damage > 0.72f)
                 {
@@ -254,6 +261,21 @@ namespace BrokenAnchor.Simulation
             }
 
             anchorDamage = CalculateAnchorDamage();
+        }
+
+        private float GetCurrentWaterAttack()
+        {
+            if (simulationElapsed <= WaterEntryDuration)
+            {
+                return level.waterEntryAttack;
+            }
+
+            if (!anchorOnSeabed)
+            {
+                return level.sinkWaterAttack;
+            }
+
+            return level.seabedWaterAttack;
         }
 
         private void BreakJoint(AttachJoint joint, SimulatedPiece pieceA, SimulatedPiece pieceB)
@@ -543,7 +565,44 @@ namespace BrokenAnchor.Simulation
                 pieceLookup[source] = simPiece;
             }
 
+            ApplyJointDamageFalloff(center);
             BuildPhysicsJoints();
+        }
+
+        private void ApplyJointDamageFalloff(Vector2 anchorCenter)
+        {
+            if (build == null || build.joints.Count == 0)
+            {
+                return;
+            }
+
+            var maxDistance = 0f;
+            for (var i = 0; i < build.joints.Count; i++)
+            {
+                var distance = Vector2.Distance(GetJointCenter(build.joints[i]), anchorCenter);
+                maxDistance = Mathf.Max(maxDistance, distance);
+            }
+
+            if (maxDistance <= 0.01f)
+            {
+                for (var i = 0; i < build.joints.Count; i++)
+                {
+                    build.joints[i].damageFalloff = 0f;
+                }
+
+                return;
+            }
+
+            for (var i = 0; i < build.joints.Count; i++)
+            {
+                var distance = Vector2.Distance(GetJointCenter(build.joints[i]), anchorCenter);
+                build.joints[i].damageFalloff = Mathf.Clamp01(distance / maxDistance);
+            }
+        }
+
+        private static Vector2 GetJointCenter(AttachJoint joint)
+        {
+            return (joint.pieceA.RectTransform.anchoredPosition + joint.pieceB.RectTransform.anchoredPosition) * 0.5f;
         }
 
         private void ConfigureVisual(AnchorPiece source, RectTransform rect)
@@ -580,6 +639,8 @@ namespace BrokenAnchor.Simulation
             for (var i = 0; i < build.joints.Count; i++)
             {
                 var sourceJoint = build.joints[i];
+                sourceJoint.currentHealth = sourceJoint.maxHealth;
+                sourceJoint.currentStrength = sourceJoint.currentHealth;
                 sourceJoint.damage = 0f;
                 sourceJoint.isBroken = false;
                 sourceJoint.jointState = JointState.Stable;
@@ -590,11 +651,16 @@ namespace BrokenAnchor.Simulation
                     continue;
                 }
 
+                if (sourceJoint.maxHealth <= MinEffectiveJointHealth)
+                {
+                    continue;
+                }
+
                 var joint = pieceA.body.gameObject.AddComponent<FixedJoint2D>();
                 joint.connectedBody = pieceB.body;
                 joint.autoConfigureConnectedAnchor = true;
                 joint.enableCollision = false;
-                joint.frequency = Mathf.Clamp(sourceJoint.currentStrength * 0.012f, 1.5f, 8f);
+                joint.frequency = Mathf.Clamp(sourceJoint.currentStrength * 2.5f, 1.5f, 10f);
                 joint.dampingRatio = 0.65f;
                 pieceA.joints.Add(joint);
             }

@@ -17,6 +17,11 @@ namespace BrokenAnchor.Build
         public AnchorPiece pieceB;
         public float initialAttachLength;
         public float currentAttachLength;
+        public float adhesiveAbility;
+        public float maxHealth;
+        public float currentHealth;
+        public float defense;
+        public float damageFalloff;
         public float currentStrength;
         public float relativeDisplacement;
         public float damage;
@@ -29,7 +34,12 @@ namespace BrokenAnchor.Build
             this.pieceB = pieceB;
             initialAttachLength = attachLength;
             currentAttachLength = attachLength;
-            currentStrength = (pieceA.Config.adhesive + pieceB.Config.adhesive) * attachLength;
+            adhesiveAbility = pieceA.Config.adhesive + pieceB.Config.adhesive;
+            maxHealth = adhesiveAbility;
+            currentHealth = maxHealth;
+            defense = pieceA.Config.tensileStrength + pieceB.Config.tensileStrength;
+            damageFalloff = 1f;
+            currentStrength = currentHealth;
             jointState = JointState.Stable;
         }
     }

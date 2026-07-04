@@ -190,9 +190,9 @@ MonoBehaviour:
     id: huh
     displayName: Huh
     size: {x: 96, y: 96}
-    weight: 54
+    weight: 10
     density: 7.6
-    adhesive: 0.38
+    adhesive: 0.05
     tensileStrength: 60
     shearStrength: 42
     dragCoeff: 0.55

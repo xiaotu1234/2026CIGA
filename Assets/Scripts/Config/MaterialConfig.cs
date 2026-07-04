@@ -6,49 +6,49 @@ namespace BrokenAnchor.Config
     [System.Serializable]
     public class MaterialConfig
     {
-        [Tooltip("材料唯一 ID。用于生成按钮名、对象名和默认 Prefab 路径；建议使用小写英文和下划线，例如 iron_block。")]
+        [Tooltip("【已生效】材料唯一 ID。用于生成按钮名、对象名和默认 Prefab 路径；建议使用小写英文和下划线，例如 iron_block。")]
         public string id;
 
-        [Tooltip("材料显示名称。会显示在材料栏按钮、材料本体标签和模拟画面标签中；可用换行区分英文名和中文名。")]
+        [Tooltip("【已生效】材料显示名称。会显示在材料栏按钮、材料本体标签和模拟画面标签中；可用换行区分英文名和中文名。")]
         public string displayName;
 
-        [Tooltip("材料在拼装界面的 2D 显示尺寸，单位为 UI 像素。主要影响显示和模拟缩放；真实贴合形状优先由 Collider2D 决定，缺少 Collider 时才用该尺寸兜底。")]
+        [Tooltip("【已生效】材料在拼装界面的 2D 显示尺寸，单位为 UI 像素。影响显示、模拟缩放和无 Collider 时的贴合兜底判定。")]
         public Vector2 size;
 
-        [Tooltip("材料重量。越重，下沉更快、触底前更不容易被水流拖走，触底后对拉住船也有帮助；过轻会触发风险提示。")]
+        [Tooltip("【已生效】材料重量。影响入水受力、刚体质量、锚总重量、船只减速效果和风险提示；越重通常越能拉住船。")]
         public float weight;
 
-        [Tooltip("材料密度。用于表达材质轻重特性，当前原型主要作为调参参考字段，后续可接入浮沉和物理计算。")]
+        [Tooltip("【预留】材料密度。当前不参与玩法计算，后续可接入浮沉、体积重量或更完整的物理计算。")]
         public float density;
 
-        [Tooltip("材料粘合/贴合能力。用于表达材料边缘连接的可靠性，当前原型保留为连接强度扩展参数。")]
+        [Tooltip("【已生效】材料粘合能力。两个连接零件的 Adhesive 相加作为连接点最大血量；血量归 0 后连接断裂。")]
         public float adhesive;
 
-        [Tooltip("抗拉强度。表示连接或材料承受绳索拉扯的能力，当前原型保留为后续断裂计算参数。")]
+        [Tooltip("【已生效】抗拉强度。两个连接零件的 Tensile Strength 相加作为连接点防御力；连接每秒伤害 = Max(0, 当前水攻击力 - 防御力) * 位置伤害衰减系数。")]
         public float tensileStrength;
 
-        [Tooltip("抗剪强度。表示连接或材料承受横向错位/剪切冲击的能力，当前原型保留为后续断裂计算参数。")]
+        [Tooltip("【预留】抗剪强度。当前不参与玩法计算，后续可用于横向错位、剪切冲击或碰撞断裂。")]
         public float shearStrength;
 
-        [Tooltip("水阻系数。越高，下沉阶段越能拖慢锚体和船的漂移，但也会让部件在水流动画中晃动更明显。")]
+        [Tooltip("【已生效】水阻系数。影响下沉和触底阶段受到的水流横推、刚体阻尼，以及建造结果中的水阻评分。")]
         public float dragCoeff;
 
-        [Tooltip("摩擦系数。表示触底后与海底的摩擦能力，当前原型主要作为抓地/支撑调参参考字段。")]
+        [Tooltip("【已生效】摩擦系数。影响模拟刚体角阻尼，以及触底拖拽时的速度衰减。")]
         public float frictionCoeff;
 
-        [Tooltip("支撑系数。表示材料触底后提供稳定支撑的能力，当前原型保留为海底支撑扩展参数。")]
+        [Tooltip("【预留】支撑系数。当前不参与玩法计算，后续可用于触底支撑、抗翻滚或海底受力稳定性。")]
         public float supportCoeff;
 
-        [Tooltip("抓地系数。越高，触底后越能拉住船；总抓地过低会触发风险提示并影响结算原因。")]
+        [Tooltip("【已生效】抓地系数。影响触底后的锚固减速效果、建造风险提示和结算原因；越高越能拉住船。")]
         public float gripCoeff;
 
-        [Tooltip("材料颜色。当 Prefab 没有 Sprite 时使用该颜色绘制材料；模拟视图中也会作为兜底颜色。")]
+        [Tooltip("【已生效】材料颜色。当 Prefab 没有 Sprite 时用于绘制材料；模拟视图中也会作为兜底颜色。")]
         public Color color;
 
-        [Tooltip("是否具有钩形结构。用于标记铁钩等特殊形状材料，当前原型保留为后续抓地和碰撞规则扩展参数。")]
+        [Tooltip("【预留】是否具有钩形结构。当前不参与玩法计算，后续可用于抓地、碰撞或特殊形状规则。")]
         public bool hasHookShape;
 
-        [Tooltip("材料 Prefab 资源路径。通常由系统按 id 自动写入；如需指定特殊 Prefab，可填写 Assets/Prefabs/Pieces/xxx.prefab。")]
+        [Tooltip("【已生效】材料 Prefab 资源路径。用于从资源加载拼装和模拟用的材料 Prefab；为空或加载失败时会用基础矩形兜底。")]
         public string prefabAssetPath;
 
         public MaterialConfig()
