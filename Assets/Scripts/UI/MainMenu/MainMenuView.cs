@@ -6,6 +6,14 @@ namespace BrokenAnchor.UI
 {
     public class MainMenuView : MonoBehaviour
     {
+        [SerializeField] private Button startButton;
+        [SerializeField] private Button settingsButton;
+        [SerializeField] private Button quitButton;
+
+        private Action onStart;
+        private Action onSettings;
+        private Action onQuit;
+
         public static MainMenuView Create(Transform parent)
         {
             var root = UIBuilder.CreateRect(parent, "MainMenuView", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -27,19 +35,38 @@ namespace BrokenAnchor.UI
             view.startButton = CreateMenuButton(root, "StartButton", "开始", 0);
             view.settingsButton = CreateMenuButton(root, "SettingsButton", "设置", 1);
             view.quitButton = CreateMenuButton(root, "QuitButton", "退出", 2);
+            view.BindGeneratedButtonClickEvents();
 
             return view;
         }
 
-        private Button startButton;
-        private Button settingsButton;
-        private Button quitButton;
-
         public void Initialize(Action onStart, Action onSettings, Action onQuit)
         {
-            startButton.onClick.AddListener(() => onStart());
-            settingsButton.onClick.AddListener(() => onSettings());
-            quitButton.onClick.AddListener(() => onQuit());
+            this.onStart = onStart;
+            this.onSettings = onSettings;
+            this.onQuit = onQuit;
+        }
+
+        public void OnStartButtonClicked()
+        {
+            onStart?.Invoke();
+        }
+
+        public void OnSettingsButtonClicked()
+        {
+            onSettings?.Invoke();
+        }
+
+        public void OnQuitButtonClicked()
+        {
+            onQuit?.Invoke();
+        }
+
+        private void BindGeneratedButtonClickEvents()
+        {
+            startButton.onClick.AddListener(OnStartButtonClicked);
+            settingsButton.onClick.AddListener(OnSettingsButtonClicked);
+            quitButton.onClick.AddListener(OnQuitButtonClicked);
         }
 
         private static Button CreateMenuButton(Transform root, string name, string text, int index)
