@@ -13,11 +13,13 @@ namespace BrokenAnchor.Core
         [SerializeField] private BuildView buildPrefab;
         [SerializeField] private SimulationView simulationPrefab;
         [SerializeField] private ResultView resultPrefab;
+        [SerializeField] private AudioClip bgmClip;
 
         private void Awake()
         {
             EnsureCamera();
             EnsureEventSystem();
+            EnsureBackgroundMusic();
 
             var canvas = CreateCanvas();
             var flow = gameObject.AddComponent<ViewFlowController>();
@@ -59,6 +61,39 @@ namespace BrokenAnchor.Core
 
             Debug.LogWarning($"{viewName} prefab is not assigned on GameBootstrap. Falling back to generated UI.");
             return fallbackFactory(parent);
+        }
+
+        private void EnsureBackgroundMusic()
+        {
+            if (bgmClip == null)
+            {
+                Debug.LogWarning("BGM clip is not assigned on GameBootstrap.");
+                return;
+            }
+
+            var existingSource = GameObject.Find("BackgroundMusic")?.GetComponent<AudioSource>();
+            if (existingSource != null)
+            {
+                existingSource.clip = bgmClip;
+                existingSource.loop = true;
+
+                if (!existingSource.isPlaying)
+                {
+                    existingSource.Play();
+                }
+
+                return;
+            }
+
+            var musicGo = new GameObject("BackgroundMusic");
+            DontDestroyOnLoad(musicGo);
+
+            var source = musicGo.AddComponent<AudioSource>();
+            source.clip = bgmClip;
+            source.loop = true;
+            source.playOnAwake = false;
+            source.spatialBlend = 0f;
+            source.Play();
         }
 
         private static void EnsureCamera()

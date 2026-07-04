@@ -343,6 +343,7 @@ MonoBehaviour:
   buildPrefab: {fileID: 2545420273700620493, guid: 5c893d045acd75244b443529a6b47ac0, type: 3}
   simulationPrefab: {fileID: 2571943513823741656, guid: 8a834e18f6a43644c9020efa8ff8d3f1, type: 3}
   resultPrefab: {fileID: 6557439145918322424, guid: e095fe383223cc742893d90295633f36, type: 3}
+  bgmClip: {fileID: 8300000, guid: 695670ad2136e084c8db4033a9f63cc7, type: 3}
 --- !u!4 &1024941549
 Transform:
   m_ObjectHideFlags: 0
