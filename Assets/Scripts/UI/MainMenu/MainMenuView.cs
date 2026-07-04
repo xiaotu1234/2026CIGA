@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,10 +10,13 @@ namespace BrokenAnchor.UI
         [SerializeField] private Button startButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button quitButton;
+        [SerializeField] private Animation startAnimationPlayer;
+        [SerializeField] private AnimationClip startanimation;
 
         private Action onStart;
         private Action onSettings;
         private Action onQuit;
+        private bool isStarting;
 
         public static MainMenuView Create(Transform parent)
         {
@@ -32,7 +36,7 @@ namespace BrokenAnchor.UI
             subtitle.rectTransform.offsetMin = Vector2.zero;
             subtitle.rectTransform.offsetMax = Vector2.zero;
 
-            view.startButton = CreateMenuButton(root, "StartButton", "开始", 0);
+            view.startButton = CreateMenuButton(root, "StartButton", "开始游戏", 0);
             view.settingsButton = CreateMenuButton(root, "SettingsButton", "设置", 1);
             view.quitButton = CreateMenuButton(root, "QuitButton", "退出", 2);
             view.BindGeneratedButtonClickEvents();
@@ -49,7 +53,12 @@ namespace BrokenAnchor.UI
 
         public void OnStartButtonClicked()
         {
-            onStart?.Invoke();
+            if (isStarting)
+            {
+                return;
+            }
+
+            StartCoroutine(PlayStartAnimationThenStart());
         }
 
         public void OnSettingsButtonClicked()
@@ -60,6 +69,47 @@ namespace BrokenAnchor.UI
         public void OnQuitButtonClicked()
         {
             onQuit?.Invoke();
+        }
+
+        private IEnumerator PlayStartAnimationThenStart()
+        {
+            isStarting = true;
+            SetButtonsInteractable(false);
+
+            if (startAnimationPlayer != null && startanimation != null)
+            {
+                startAnimationPlayer.Stop();
+                startAnimationPlayer.clip = startanimation;
+                if (startAnimationPlayer.GetClip(startanimation.name) == null)
+                {
+                    startAnimationPlayer.AddClip(startanimation, startanimation.name);
+                }
+
+                startAnimationPlayer.Play(startanimation.name);
+                yield return new WaitForSeconds(startanimation.length);
+            }
+
+            onStart?.Invoke();
+            SetButtonsInteractable(true);
+            isStarting = false;
+        }
+
+        private void SetButtonsInteractable(bool interactable)
+        {
+            if (startButton != null)
+            {
+                startButton.interactable = interactable;
+            }
+
+            if (settingsButton != null)
+            {
+                settingsButton.interactable = interactable;
+            }
+
+            if (quitButton != null)
+            {
+                quitButton.interactable = interactable;
+            }
         }
 
         private void BindGeneratedButtonClickEvents()
