@@ -7,6 +7,8 @@ namespace BrokenAnchor.Core
 {
     public class GameBootstrap : MonoBehaviour
     {
+        [SerializeField] private MainMenuView mainMenuPrefab;
+
         private void Awake()
         {
             EnsureCamera();
@@ -16,7 +18,7 @@ namespace BrokenAnchor.Core
             var flow = gameObject.AddComponent<ViewFlowController>();
             var round = gameObject.AddComponent<RoundController>();
 
-            var mainMenu = MainMenuView.Create(canvas.transform);
+            var mainMenu = CreateMainMenu(canvas.transform);
             var settings = SettingsView.Create(canvas.transform);
             var briefing = StartBriefingView.Create(canvas.transform);
             var build = BuildView.Create(canvas.transform);
@@ -40,6 +42,17 @@ namespace BrokenAnchor.Core
             round.Initialize(flow, briefing, build, simulation, result);
 
             flow.Show(GameView.MainMenu);
+        }
+
+        private MainMenuView CreateMainMenu(Transform parent)
+        {
+            if (mainMenuPrefab != null)
+            {
+                return Instantiate(mainMenuPrefab, parent);
+            }
+
+            Debug.LogWarning("MainMenuView prefab is not assigned on GameBootstrap. Falling back to generated UI.");
+            return MainMenuView.Create(parent);
         }
 
         private static void EnsureCamera()
@@ -81,7 +94,7 @@ namespace BrokenAnchor.Core
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1280f, 720f);
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
             canvasGo.AddComponent<GraphicRaycaster>();
             return canvas;
