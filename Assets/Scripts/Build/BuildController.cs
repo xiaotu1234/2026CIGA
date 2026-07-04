@@ -744,8 +744,33 @@ namespace BrokenAnchor.Build
             if (image != null)
             {
                 image.color = ropeTiePiece == null
-                    ? new Color(0.92f, 0.68f, 0.28f, 0.75f)
-                    : new Color(0.45f, 0.98f, 0.72f, 0.85f);
+                    ? new Color(1f, 0.67f, 0.08f, 0.42f)
+                    : new Color(0.2f, 1f, 0.58f, 0.55f);
+            }
+
+            var highlightColor = ropeTiePiece == null
+                ? new Color(1f, 0.92f, 0.18f, 1f)
+                : new Color(0.35f, 1f, 0.62f, 1f);
+            SetRopeMountChildColor("MountBorderTop", highlightColor);
+            SetRopeMountChildColor("MountBorderBottom", highlightColor);
+            SetRopeMountChildColor("MountBorderLeft", highlightColor);
+            SetRopeMountChildColor("MountBorderRight", highlightColor);
+            SetRopeMountChildColor("MountCrossHorizontal", highlightColor);
+            SetRopeMountChildColor("MountCrossVertical", highlightColor);
+        }
+
+        private void SetRopeMountChildColor(string childName, Color color)
+        {
+            var child = ropeMountPoint == null ? null : ropeMountPoint.Find(childName);
+            if (child == null)
+            {
+                return;
+            }
+
+            var image = child.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = color;
             }
         }
 

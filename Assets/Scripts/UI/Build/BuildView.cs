@@ -23,6 +23,9 @@ namespace BrokenAnchor.UI
         [SerializeField] private Button submitButton;
 
         private Action<AnchorBuildResult> submitCallback;
+        private static readonly Color RopeMountIdleColor = new Color(1f, 0.67f, 0.08f, 0.42f);
+        private static readonly Color RopeMountBorderColor = new Color(1f, 0.92f, 0.18f, 1f);
+        private static readonly Color RopeMountTextColor = new Color(0.05f, 0.06f, 0.03f, 1f);
 
         public static BuildView Create(Transform parent)
         {
@@ -58,12 +61,13 @@ namespace BrokenAnchor.UI
             view.connectionLayer.SetAsFirstSibling();
 
             view.ropeMountPoint = UIBuilder.CreateRect(view.workspace, "RopeMountPoint", new Vector2(0.5f, 0.88f), new Vector2(0.5f, 0.88f), new Vector2(-42f, -20f), new Vector2(42f, 20f));
-            view.ropeMountPoint.gameObject.AddComponent<Image>().color = new Color(0.92f, 0.68f, 0.28f, 0.75f);
+            view.ropeMountPoint.gameObject.AddComponent<Image>().color = RopeMountIdleColor;
             var mountLabel = UIBuilder.CreateText(view.ropeMountPoint, "Label", "绳子挂点", 15, new Color(0.08f, 0.09f, 0.08f), TextAnchor.MiddleCenter);
             mountLabel.rectTransform.anchorMin = Vector2.zero;
             mountLabel.rectTransform.anchorMax = Vector2.one;
             mountLabel.rectTransform.offsetMin = Vector2.zero;
             mountLabel.rectTransform.offsetMax = Vector2.zero;
+            ConfigureRopeMountPointVisual(view.ropeMountPoint);
 
             var side = UIBuilder.CreateRect(root, "RiskPanel", new Vector2(0.78f, 0.15f), new Vector2(0.97f, 0.88f), Vector2.zero, Vector2.zero);
             side.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.13f, 0.15f, 1f);
@@ -155,6 +159,7 @@ namespace BrokenAnchor.UI
             flipButton = flipButton != null ? flipButton : FindChildComponent<Button>("FlipButton");
             clearButton = clearButton != null ? clearButton : FindChildComponent<Button>("ClearButton");
             submitButton = submitButton != null ? submitButton : FindChildComponent<Button>("SubmitButton");
+            ConfigureRopeMountPointVisual(ropeMountPoint);
         }
 
         private void RemovePrefabAnchorPiecePlaceholders()
@@ -188,6 +193,67 @@ namespace BrokenAnchor.UI
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
             return button;
+        }
+
+        private static void ConfigureRopeMountPointVisual(RectTransform mount)
+        {
+            if (mount == null)
+            {
+                return;
+            }
+
+            var image = mount.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = RopeMountIdleColor;
+                image.raycastTarget = false;
+            }
+
+            mount.SetAsLastSibling();
+            EnsureLine(mount, "MountBorderTop", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -4f), Vector2.zero, RopeMountBorderColor);
+            EnsureLine(mount, "MountBorderBottom", Vector2.zero, new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, 4f), RopeMountBorderColor);
+            EnsureLine(mount, "MountBorderLeft", Vector2.zero, new Vector2(0f, 1f), Vector2.zero, new Vector2(4f, 0f), RopeMountBorderColor);
+            EnsureLine(mount, "MountBorderRight", new Vector2(1f, 0f), Vector2.one, new Vector2(-4f, 0f), Vector2.zero, RopeMountBorderColor);
+            EnsureLine(mount, "MountCrossHorizontal", new Vector2(0.12f, 0.5f), new Vector2(0.88f, 0.5f), new Vector2(0f, -2f), new Vector2(0f, 2f), new Color(1f, 0.98f, 0.52f, 0.95f));
+            EnsureLine(mount, "MountCrossVertical", new Vector2(0.5f, 0.12f), new Vector2(0.5f, 0.88f), new Vector2(-2f, 0f), new Vector2(2f, 0f), new Color(1f, 0.98f, 0.52f, 0.95f));
+
+            var label = FindDirectChild<Text>(mount, "Label");
+            if (label != null)
+            {
+                label.text = "绳子挂点\n检测区";
+                label.fontSize = 14;
+                label.color = RopeMountTextColor;
+                label.raycastTarget = false;
+                label.rectTransform.anchorMin = Vector2.zero;
+                label.rectTransform.anchorMax = Vector2.one;
+                label.rectTransform.offsetMin = Vector2.zero;
+                label.rectTransform.offsetMax = Vector2.zero;
+            }
+        }
+
+        private static Image EnsureLine(RectTransform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax, Color color)
+        {
+            var child = parent.Find(name) as RectTransform;
+            if (child == null)
+            {
+                child = UIBuilder.CreateRect(parent, name, anchorMin, anchorMax, offsetMin, offsetMax);
+                child.gameObject.AddComponent<Image>();
+            }
+
+            child.anchorMin = anchorMin;
+            child.anchorMax = anchorMax;
+            child.offsetMin = offsetMin;
+            child.offsetMax = offsetMax;
+            var image = child.GetComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private static T FindDirectChild<T>(Transform parent, string childName) where T : Component
+        {
+            var child = parent == null ? null : parent.Find(childName);
+            return child == null ? null : child.GetComponent<T>();
         }
     }
 }
