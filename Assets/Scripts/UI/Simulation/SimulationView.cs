@@ -9,14 +9,14 @@ namespace BrokenAnchor.UI
 {
     public class SimulationView : MonoBehaviour
     {
-        [SerializeField] private SimulationController controller;
-        [SerializeField] private RectTransform playArea;
-        [SerializeField] private RectTransform ship;
-        [SerializeField] private RectTransform anchor;
-        [SerializeField] private RectTransform rope;
-        [SerializeField] private Text stageText;
-        [SerializeField] private Text metricText;
-        [SerializeField] private Slider progress;
+        private SimulationController controller;
+        private RectTransform playArea;
+        private RectTransform ship;
+        private RectTransform anchor;
+        private RectTransform rope;
+        private Text stageText;
+        private Text metricText;
+        private Slider progress;
 
         public static SimulationView Create(Transform parent)
         {
@@ -58,25 +58,42 @@ namespace BrokenAnchor.UI
             view.metricText.rectTransform.offsetMin = Vector2.zero;
             view.metricText.rectTransform.offsetMax = Vector2.zero;
 
-            var sliderRect = UIBuilder.CreateRect(side, "DangerProgress", new Vector2(0.1f, 0.18f), new Vector2(0.9f, 0.24f), Vector2.zero, Vector2.zero);
-            view.progress = sliderRect.gameObject.AddComponent<Slider>();
-            view.progress.minValue = 0f;
-            view.progress.maxValue = 1f;
+            var progressLabel = UIBuilder.CreateText(root, "ShipDangerProgressLabel", "\u8ddd\u79bb\u5371\u9669\u533a", 18, new Color(0.92f, 0.96f, 0.94f), TextAnchor.MiddleRight);
+            progressLabel.rectTransform.anchorMin = new Vector2(0.34f, 0.915f);
+            progressLabel.rectTransform.anchorMax = new Vector2(0.47f, 0.965f);
+            progressLabel.rectTransform.offsetMin = Vector2.zero;
+            progressLabel.rectTransform.offsetMax = Vector2.zero;
+
+            view.progress = CreateProgressSlider(root, "ShipDangerProgress", new Vector2(0.48f, 0.925f), new Vector2(0.72f, 0.955f));
+
             view.controller = root.gameObject.AddComponent<SimulationController>();
-            view.InitializeController(null);
+            view.controller.Initialize(view.playArea, view.ship, view.anchor, view.rope, view.stageText, view.metricText, view.progress, null);
             return view;
         }
 
         public void Run(AnchorBuildResult build, LevelConfig level, Action<SimulationResult> onFinished)
         {
             ResolveReferences();
-            InitializeController(onFinished);
+            ClearAnchorChildren();
+
+            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, progress, onFinished);
             controller.StartSimulation(build, level);
         }
 
-        private void InitializeController(Action<SimulationResult> onFinished)
+        public void Run(AnchorBuildResult build, LevelConfig level, Action<SimulationResult> onFinished, object ignoredMode)
         {
-            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, progress, onFinished);
+            Run(build, level, onFinished);
+        }
+
+        private void ClearAnchorChildren()
+        {
+            foreach (Transform child in playArea)
+            {
+                if (child.name.StartsWith("Piece_") || child.name.StartsWith("Joint_"))
+                {
+                    Destroy(child.gameObject);
+                }
+            }
         }
 
         private void ResolveReferences()
@@ -94,6 +111,7 @@ namespace BrokenAnchor.UI
             stageText = stageText != null ? stageText : FindChildComponent<Text>("StageText");
             metricText = metricText != null ? metricText : FindChildComponent<Text>("MetricText");
             progress = progress != null ? progress : FindChildComponent<Slider>("DangerProgress");
+            progress = progress != null ? progress : FindChildComponent<Slider>("ShipDangerProgressBg");
         }
 
         private T FindChildComponent<T>(string childName) where T : Component
@@ -109,23 +127,46 @@ namespace BrokenAnchor.UI
             return null;
         }
 
-        private static RectTransform CreateObject(Transform parent, string name, Vector2 size, Color color)
+        private void InitializeController(Action<SimulationResult> onFinished)
         {
-            var rect = UIBuilder.CreateRect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-            rect.sizeDelta = size;
-            rect.gameObject.AddComponent<Image>().color = color;
-            var label = UIBuilder.CreateText(rect, "Label", name, 16, Color.black, TextAnchor.MiddleCenter);
-            label.rectTransform.anchorMin = Vector2.zero;
-            label.rectTransform.anchorMax = Vector2.one;
-            label.rectTransform.offsetMin = Vector2.zero;
-            label.rectTransform.offsetMax = Vector2.zero;
-            return rect;
+            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, progress, onFinished);
         }
 
-        private static void CreateBand(Transform parent, string name, Vector2 min, Vector2 max, Color color)
+        private static void CreateBand(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Color color)
         {
-            var rect = UIBuilder.CreateRect(parent, name, min, max, Vector2.zero, Vector2.zero);
-            rect.gameObject.AddComponent<Image>().color = color;
+            var band = UIBuilder.CreateRect(parent, name, anchorMin, anchorMax, Vector2.zero, Vector2.zero);
+            band.gameObject.AddComponent<Image>().color = color;
+        }
+
+        private static RectTransform CreateObject(Transform parent, string name, Vector2 size, Color color)
+        {
+            var obj = UIBuilder.CreateRect(parent, name, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size);
+            obj.gameObject.AddComponent<Image>().color = color;
+            return obj;
+        }
+
+        private static Slider CreateProgressSlider(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            var bg = UIBuilder.CreateRect(parent, name + "Bg", anchorMin, anchorMax, Vector2.zero, Vector2.zero);
+            bg.gameObject.AddComponent<Image>().color = new Color(0.15f, 0.22f, 0.24f, 1f);
+
+            var fill = UIBuilder.CreateRect(bg, name + "Fill", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            fill.gameObject.AddComponent<Image>().color = new Color(0.92f, 0.23f, 0.13f, 1f);
+
+            var handle = UIBuilder.CreateRect(bg, name + "ShipHandle", new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(-20f, -18f), new Vector2(20f, 18f));
+            handle.gameObject.AddComponent<Image>().color = new Color(0.78f, 0.86f, 0.82f, 1f);
+            var icon = UIBuilder.CreateText(handle, "Icon", "\u8239", 16, new Color(0.05f, 0.12f, 0.14f), TextAnchor.MiddleCenter);
+            icon.rectTransform.anchorMin = Vector2.zero;
+            icon.rectTransform.anchorMax = Vector2.one;
+            icon.rectTransform.offsetMin = Vector2.zero;
+            icon.rectTransform.offsetMax = Vector2.zero;
+
+            var slider = bg.gameObject.AddComponent<Slider>();
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+            slider.fillRect = fill;
+            slider.handleRect = handle;
+            return slider;
         }
     }
 }
