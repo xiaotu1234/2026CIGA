@@ -17,6 +17,7 @@ namespace BrokenAnchor.Simulation
             public AnchorPiece source;
             public RectTransform rect;
             public Rigidbody2D body;
+            public Collider2D collider;
             public readonly List<FixedJoint2D> joints = new List<FixedJoint2D>();
             public bool weaklyConnected;
             public bool grounded;
@@ -96,7 +97,9 @@ namespace BrokenAnchor.Simulation
         private const float MaxCameraOffsetY = 1250f;
         private const float SeabedSegmentLength = 36f;
         private const float SeabedVisualThickness = 100f;
-        private const float SeabedColliderRadius = 0.18f;
+        private const float SeabedColliderRadius = 0.01f;
+        private const float SeabedContactPadding = 14f;
+        private const float PieceColliderContactSkin = 1f;
         private const float SeabedSpawnPadding = 360f;
         private const float SeabedDespawnPadding = 260f;
         private const float SeabedMinY = -1172f;
@@ -388,9 +391,9 @@ namespace BrokenAnchor.Simulation
             for (var i = 0; i < simulatedPieces.Count; i++)
             {
                 var piece = simulatedPieces[i];
-                var uiPosition = ToUiPosition(piece.body.position);
-                var bottom = uiPosition.y - piece.rect.sizeDelta.y * 0.5f;
-                piece.grounded = bottom <= GetSeabedHeight(uiPosition.x) + 6f;
+                var bottom = GetColliderBottomUi(piece);
+                var x = ToUiPosition(piece.body.position).x;
+                piece.grounded = bottom <= GetSeabedHeight(x) + SeabedContactPadding;
                 if (piece.grounded)
                 {
                     contacts++;
@@ -521,9 +524,10 @@ namespace BrokenAnchor.Simulation
 
         private static Vector2 GetRopeAttachPhysicsPosition(SimulatedPiece tiePiece)
         {
+            var visualSize = GetVisualSize(tiePiece.rect);
             var localOffset = new Vector2(
-                tiePiece.rect.sizeDelta.x * RopeAttachLocalXFactor,
-                tiePiece.rect.sizeDelta.y * RopeAttachLocalYFactor) * PhysicsScale;
+                visualSize.x * RopeAttachLocalXFactor,
+                visualSize.y * RopeAttachLocalYFactor) * PhysicsScale;
             return tiePiece.body.position + Rotate(localOffset, tiePiece.body.rotation);
         }
 
@@ -586,11 +590,16 @@ namespace BrokenAnchor.Simulation
             for (var i = 0; i < build.pieces.Count; i++)
             {
                 var source = build.pieces[i];
+                var snapshot = build.GetPieceSnapshot(source);
+                var sourcePosition = snapshot == null ? source.RectTransform.anchoredPosition : snapshot.anchoredPosition;
+                var sourceSize = snapshot == null ? source.RectTransform.sizeDelta : snapshot.sizeDelta;
+                var sourceRotation = snapshot == null ? source.RectTransform.localRotation : snapshot.localRotation;
+                var sourceScale = snapshot == null ? source.RectTransform.localScale : snapshot.localScale;
                 var rect = CreateSimPieceRect(source);
-                rect.sizeDelta = source.RectTransform.sizeDelta * AnchorScale;
-                rect.anchoredPosition = InitialAnchorPosition + (source.RectTransform.anchoredPosition - center) * AnchorScale;
-                rect.localRotation = source.RectTransform.localRotation;
-                rect.localScale = source.RectTransform.localScale;
+                rect.sizeDelta = sourceSize;
+                rect.anchoredPosition = InitialAnchorPosition + (sourcePosition - center) * AnchorScale;
+                rect.localRotation = sourceRotation;
+                rect.localScale = new Vector3(sourceScale.x * AnchorScale, sourceScale.y * AnchorScale, sourceScale.z);
 
                 ConfigureVisual(source, rect);
 
@@ -609,15 +618,14 @@ namespace BrokenAnchor.Simulation
                 body.position = ToPhysicsPosition(rect.anchoredPosition);
                 body.rotation = rect.localEulerAngles.z;
 
-                var collider = bodyObject.AddComponent<BoxCollider2D>();
-                collider.size = rect.sizeDelta * PhysicsScale;
-                collider.sharedMaterial = pieceMaterial;
+                var collider = CreateSimCollider(source, bodyObject, sourceScale);
 
                 var simPiece = new SimulatedPiece
                 {
                     source = source,
                     rect = rect,
                     body = body,
+                    collider = collider,
                     weaklyConnected = CountJointsForPiece(source) <= 1
                 };
 
@@ -628,6 +636,70 @@ namespace BrokenAnchor.Simulation
             ApplyJointDamageFalloff(center);
             BuildPhysicsJoints();
             CaptureRopeTieHorizontalLock();
+        }
+
+        private Collider2D CreateSimCollider(AnchorPiece source, GameObject bodyObject, Vector3 sourceScale)
+        {
+            var scale = new Vector2(sourceScale.x * AnchorScale, sourceScale.y * AnchorScale);
+            var sourceCollider = source.ShapeCollider;
+            if (sourceCollider is PolygonCollider2D sourcePolygon)
+            {
+                var collider = bodyObject.AddComponent<PolygonCollider2D>();
+                collider.pathCount = sourcePolygon.pathCount;
+                collider.offset = ScaleToPhysics(sourcePolygon.offset, scale);
+                for (var path = 0; path < sourcePolygon.pathCount; path++)
+                {
+                    var points = sourcePolygon.GetPath(path);
+                    var scaledPoints = new Vector2[points.Length];
+                    for (var i = 0; i < points.Length; i++)
+                    {
+                        scaledPoints[i] = ScaleToPhysics(points[i], scale);
+                    }
+
+                    if (scale.x * scale.y < 0f)
+                    {
+                        Array.Reverse(scaledPoints);
+                    }
+
+                    collider.SetPath(path, scaledPoints);
+                }
+
+                collider.sharedMaterial = pieceMaterial;
+                return collider;
+            }
+
+            if (sourceCollider is BoxCollider2D sourceBox)
+            {
+                var collider = bodyObject.AddComponent<BoxCollider2D>();
+                collider.offset = ScaleToPhysics(sourceBox.offset, scale);
+                collider.size = AbsScaleToPhysics(sourceBox.size, scale) * PieceColliderContactSkin;
+                collider.sharedMaterial = pieceMaterial;
+                return collider;
+            }
+
+            if (sourceCollider is CircleCollider2D sourceCircle)
+            {
+                var collider = bodyObject.AddComponent<CircleCollider2D>();
+                collider.offset = ScaleToPhysics(sourceCircle.offset, scale);
+                collider.radius = sourceCircle.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y)) * PhysicsScale * PieceColliderContactSkin;
+                collider.sharedMaterial = pieceMaterial;
+                return collider;
+            }
+
+            var fallback = bodyObject.AddComponent<BoxCollider2D>();
+            fallback.size = GetVisualSize(source.RectTransform) * AnchorScale * PhysicsScale * PieceColliderContactSkin;
+            fallback.sharedMaterial = pieceMaterial;
+            return fallback;
+        }
+
+        private static Vector2 ScaleToPhysics(Vector2 value, Vector2 scale)
+        {
+            return new Vector2(value.x * scale.x, value.y * scale.y) * PhysicsScale;
+        }
+
+        private static Vector2 AbsScaleToPhysics(Vector2 value, Vector2 scale)
+        {
+            return new Vector2(value.x * Mathf.Abs(scale.x), value.y * Mathf.Abs(scale.y)) * PhysicsScale;
         }
 
         private void CaptureRopeTieHorizontalLock()
@@ -701,9 +773,9 @@ namespace BrokenAnchor.Simulation
             }
         }
 
-        private static Vector2 GetJointCenter(AttachJoint joint)
+        private Vector2 GetJointCenter(AttachJoint joint)
         {
-            return (joint.pieceA.RectTransform.anchoredPosition + joint.pieceB.RectTransform.anchoredPosition) * 0.5f;
+            return (GetSnapshotPosition(joint.pieceA) + GetSnapshotPosition(joint.pieceB)) * 0.5f;
         }
 
         private void ConfigureVisual(AnchorPiece source, RectTransform rect)
@@ -778,9 +850,25 @@ namespace BrokenAnchor.Simulation
 
         private static float CalculateJointBreakTorque(AttachJoint joint, SimulatedPiece pieceA, SimulatedPiece pieceB)
         {
-            var sizeFactor = Mathf.Max(1f, (pieceA.rect.sizeDelta.magnitude + pieceB.rect.sizeDelta.magnitude) * 0.5f);
+            var sizeFactor = Mathf.Max(1f, (GetVisualSize(pieceA.rect).magnitude + GetVisualSize(pieceB.rect).magnitude) * 0.5f);
             var healthFactor = Mathf.Max(1f, joint.maxHealth + joint.defense);
             return Mathf.Max(0.01f, healthFactor * sizeFactor * JointBreakTorqueScale * JointStrengthMultiplier);
+        }
+
+        private static Vector2 GetVisualSize(RectTransform rect)
+        {
+            var scale = rect.localScale;
+            return new Vector2(rect.sizeDelta.x * Mathf.Abs(scale.x), rect.sizeDelta.y * Mathf.Abs(scale.y));
+        }
+
+        private static float GetColliderBottomUi(SimulatedPiece piece)
+        {
+            if (piece.collider != null)
+            {
+                return ToUiPosition(piece.collider.bounds.min).y;
+            }
+
+            return ToUiPosition(piece.body.position).y - GetVisualSize(piece.rect).y * 0.5f;
         }
 
         private RectTransform CreateSimPieceRect(AnchorPiece source)
@@ -844,13 +932,25 @@ namespace BrokenAnchor.Simulation
             for (var i = 0; i < build.pieces.Count; i++)
             {
                 var piece = build.pieces[i];
-                var half = piece.RectTransform.sizeDelta * 0.5f;
-                var position = piece.RectTransform.anchoredPosition;
+                var half = GetSnapshotSize(piece) * 0.5f;
+                var position = GetSnapshotPosition(piece);
                 min = Vector2.Min(min, position - half);
                 max = Vector2.Max(max, position + half);
             }
 
             return (min + max) * 0.5f;
+        }
+
+        private Vector2 GetSnapshotPosition(AnchorPiece piece)
+        {
+            var snapshot = build.GetPieceSnapshot(piece);
+            return snapshot == null ? piece.RectTransform.anchoredPosition : snapshot.anchoredPosition;
+        }
+
+        private Vector2 GetSnapshotSize(AnchorPiece piece)
+        {
+            var snapshot = build.GetPieceSnapshot(piece);
+            return snapshot == null ? piece.RectTransform.sizeDelta : snapshot.sizeDelta;
         }
 
         private void SyncVisualsFromPhysics()

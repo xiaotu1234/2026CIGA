@@ -28,11 +28,17 @@ namespace BrokenAnchor.Build
         private const float PreviewSnapToleranceMultiplier = 2f;
         private const float PreviewMinAttachLengthMultiplier = 0.6f;
         private const float RopeMountMinCoverage = 0.35f;
+        private const float RopeMountAreaBorderThickness = 3f;
+        private const float RopeMountDetectionWidth = 70f;
+        private const float RopeMountDetectionHeight = 42f;
 
         private RectTransform dragSurface;
         private RectTransform workspace;
         private RectTransform connectionLayer;
         private RectTransform ropeMountPoint;
+        private RectTransform ropeMountAreaRect;
+        private Image ropeMountAreaFill;
+        private readonly List<Image> ropeMountAreaBorders = new List<Image>();
         private RectTransform materialPile;
         private Text riskText;
         private Text statusText;
@@ -40,6 +46,7 @@ namespace BrokenAnchor.Build
         private AnchorPiece selectedPiece;
         private AnchorPiece ropeTiePiece;
         private AnchorPiece draggingPiece;
+        private int ropeMountAreaRefreshFrames;
         private Action<AnchorBuildResult> onSubmit;
 
         public IReadOnlyList<AnchorPiece> Pieces => pieces;
@@ -66,7 +73,21 @@ namespace BrokenAnchor.Build
             this.statusText = statusText;
             this.attachConfig = attachConfig;
             this.onSubmit = onSubmit;
+            EnsureRopeMountAreaVisual();
             UpdateRopeMountVisual();
+            ropeMountAreaRefreshFrames = 6;
+        }
+
+        private void LateUpdate()
+        {
+            if (ropeMountAreaRefreshFrames <= 0)
+            {
+                return;
+            }
+
+            ropeMountAreaRefreshFrames--;
+            Canvas.ForceUpdateCanvases();
+            EnsureRopeMountAreaVisual();
         }
 
         public void PopulateMaterialPile(IReadOnlyList<MaterialConfig> materials)
@@ -295,10 +316,19 @@ namespace BrokenAnchor.Build
             result.isConnected = AttachGraph.IsFullyConnected(pieces, joints);
             for (var i = 0; i < pieces.Count; i++)
             {
-                result.pieces.Add(pieces[i]);
-                result.totalWeight += pieces[i].Config.weight;
-                result.gripScore += pieces[i].Config.gripCoeff;
-                result.dragScore += pieces[i].Config.dragCoeff;
+                var piece = pieces[i];
+                result.pieces.Add(piece);
+                result.pieceSnapshots.Add(new AnchorBuildResult.PieceSnapshot
+                {
+                    source = piece,
+                    anchoredPosition = piece.RectTransform.anchoredPosition,
+                    sizeDelta = piece.RectTransform.sizeDelta,
+                    localRotation = piece.RectTransform.localRotation,
+                    localScale = piece.RectTransform.localScale
+                });
+                result.totalWeight += piece.Config.weight;
+                result.gripScore += piece.Config.gripCoeff;
+                result.dragScore += piece.Config.dragCoeff;
             }
 
             for (var i = 0; i < joints.Count; i++)
@@ -707,8 +737,56 @@ namespace BrokenAnchor.Build
 
         private Rect GetRopeMountRect()
         {
+            if (TryGetRopeMountLabelCenter(out var labelCenter))
+            {
+                var halfSize = new Vector2(RopeMountDetectionWidth, RopeMountDetectionHeight) * 0.5f;
+                return Rect.MinMaxRect(labelCenter.x - halfSize.x, labelCenter.y - halfSize.y, labelCenter.x + halfSize.x, labelCenter.y + halfSize.y);
+            }
+
+            return GetRectTransformLocalRect(ropeMountPoint);
+        }
+
+        private bool TryGetRopeMountLabelCenter(out Vector2 center)
+        {
+            center = default;
+            if (ropeMountPoint == null || dragSurface == null)
+            {
+                return false;
+            }
+
+            var label = ropeMountPoint.Find("Label") as RectTransform;
+            if (label != null && label.gameObject.activeInHierarchy)
+            {
+                center = GetRectTransformLocalRect(label).center;
+                return true;
+            }
+
+            var texts = ropeMountPoint.GetComponentsInChildren<Text>(true);
+            for (var i = 0; i < texts.Length; i++)
+            {
+                var text = texts[i];
+                if (text == null || !text.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                var textRect = text.transform as RectTransform;
+                if (textRect == null)
+                {
+                    continue;
+                }
+
+                center = GetRectTransformLocalRect(textRect).center;
+                return true;
+            }
+
+            return false;
+        }
+
+        private Rect GetRectTransformLocalRect(RectTransform rectTransform)
+        {
             var corners = new Vector3[4];
-            ropeMountPoint.GetWorldCorners(corners);
+            rectTransform.GetWorldCorners(corners);
             var min = new Vector2(float.MaxValue, float.MaxValue);
             var max = new Vector2(float.MinValue, float.MinValue);
             for (var i = 0; i < corners.Length; i++)
@@ -747,6 +825,120 @@ namespace BrokenAnchor.Build
                     ? new Color(0.92f, 0.68f, 0.28f, 0.75f)
                     : new Color(0.45f, 0.98f, 0.72f, 0.85f);
             }
+
+            EnsureRopeMountAreaVisual();
+            var areaColor = ropeTiePiece == null
+                ? new Color(1f, 0.36f, 0.22f, 0.18f)
+                : new Color(0.22f, 1f, 0.58f, 0.24f);
+            var borderColor = ropeTiePiece == null
+                ? new Color(1f, 0.52f, 0.24f, 0.95f)
+                : new Color(0.28f, 1f, 0.66f, 1f);
+
+            if (ropeMountAreaFill != null)
+            {
+                ropeMountAreaFill.color = areaColor;
+            }
+
+            for (var i = 0; i < ropeMountAreaBorders.Count; i++)
+            {
+                if (ropeMountAreaBorders[i] != null)
+                {
+                    ropeMountAreaBorders[i].color = borderColor;
+                }
+            }
+        }
+
+        private void EnsureRopeMountAreaVisual()
+        {
+            if (ropeMountPoint == null)
+            {
+                return;
+            }
+
+            var area = ropeMountPoint.Find("RopeMountDetectionArea") as RectTransform;
+            if (area == null)
+            {
+                area = CreateStretchRect(ropeMountPoint, "RopeMountDetectionArea", Vector2.zero, Vector2.zero);
+                ropeMountAreaFill = area.gameObject.AddComponent<Image>();
+                ropeMountAreaFill.raycastTarget = false;
+                CreateBorderLine(area, "TopBorder", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -RopeMountAreaBorderThickness), Vector2.zero);
+                CreateBorderLine(area, "BottomBorder", Vector2.zero, new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, RopeMountAreaBorderThickness));
+                CreateBorderLine(area, "LeftBorder", Vector2.zero, new Vector2(0f, 1f), Vector2.zero, new Vector2(RopeMountAreaBorderThickness, 0f));
+                CreateBorderLine(area, "RightBorder", new Vector2(1f, 0f), Vector2.one, new Vector2(-RopeMountAreaBorderThickness, 0f), Vector2.zero);
+            }
+            else
+            {
+                ropeMountAreaFill = area.GetComponent<Image>();
+                if (ropeMountAreaFill == null)
+                {
+                    ropeMountAreaFill = area.gameObject.AddComponent<Image>();
+                }
+
+                ropeMountAreaFill.raycastTarget = false;
+            }
+
+            ropeMountAreaRect = area;
+            ropeMountAreaBorders.Clear();
+            AddRopeMountBorder(area, "TopBorder");
+            AddRopeMountBorder(area, "BottomBorder");
+            AddRopeMountBorder(area, "LeftBorder");
+            AddRopeMountBorder(area, "RightBorder");
+            area.SetAsFirstSibling();
+            UpdateRopeMountAreaVisualRect(area);
+        }
+
+        private void AddRopeMountBorder(RectTransform area, string borderName)
+        {
+            var border = area.Find(borderName);
+            if (border == null)
+            {
+                return;
+            }
+
+            var image = border.GetComponent<Image>();
+            if (image != null)
+            {
+                image.raycastTarget = false;
+                ropeMountAreaBorders.Add(image);
+            }
+        }
+
+        private static RectTransform CreateStretchRect(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            return rect;
+        }
+
+        private static void CreateBorderLine(RectTransform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
+        {
+            var rect = CreateStretchRect(parent, name, anchorMin, anchorMax);
+            rect.offsetMin = offsetMin;
+            rect.offsetMax = offsetMax;
+            var image = rect.gameObject.AddComponent<Image>();
+            image.raycastTarget = false;
+        }
+
+        private void UpdateRopeMountAreaVisualRect(RectTransform area)
+        {
+            if (area == null || dragSurface == null || ropeMountPoint == null)
+            {
+                return;
+            }
+
+            var mountRect = GetRopeMountRect();
+            var min = (Vector2)ropeMountPoint.InverseTransformPoint(dragSurface.TransformPoint(mountRect.min));
+            var max = (Vector2)ropeMountPoint.InverseTransformPoint(dragSurface.TransformPoint(mountRect.max));
+            area.anchorMin = new Vector2(0.5f, 0.5f);
+            area.anchorMax = new Vector2(0.5f, 0.5f);
+            area.pivot = new Vector2(0.5f, 0.5f);
+            area.anchoredPosition = (min + max) * 0.5f;
+            area.sizeDelta = new Vector2(Mathf.Abs(max.x - min.x), Mathf.Abs(max.y - min.y));
         }
 
         private Vector2 GetPilePosition(int index)
