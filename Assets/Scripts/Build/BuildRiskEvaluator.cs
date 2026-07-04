@@ -21,11 +21,11 @@ namespace BrokenAnchor.Build
 
             if (ropeTiePiece == null)
             {
-                risks.Add("尚未选择船锚绳绑点。");
+                risks.Add("尚未把材料覆盖到绳子挂点。");
             }
             else if (ropeTiePiece.Config.weight < 35f)
             {
-                risks.Add("绑点在轻材料上，绳力可能先拉坏连接。");
+                risks.Add("绳子挂在轻材料上，绳力可能先拉坏连接。");
             }
 
             var totalWeight = 0f;

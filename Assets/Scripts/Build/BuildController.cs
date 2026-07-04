@@ -27,10 +27,12 @@ namespace BrokenAnchor.Build
         private const float PostSeparationSnapRangeMultiplier = 8f;
         private const float PreviewSnapToleranceMultiplier = 2f;
         private const float PreviewMinAttachLengthMultiplier = 0.6f;
+        private const float RopeMountMinCoverage = 0.35f;
 
         private RectTransform dragSurface;
         private RectTransform workspace;
         private RectTransform connectionLayer;
+        private RectTransform ropeMountPoint;
         private RectTransform materialPile;
         private Text riskText;
         private Text statusText;
@@ -48,6 +50,7 @@ namespace BrokenAnchor.Build
             RectTransform dragSurface,
             RectTransform workspace,
             RectTransform connectionLayer,
+            RectTransform ropeMountPoint,
             RectTransform materialPile,
             Text riskText,
             Text statusText,
@@ -57,11 +60,13 @@ namespace BrokenAnchor.Build
             this.dragSurface = dragSurface;
             this.workspace = workspace;
             this.connectionLayer = connectionLayer;
+            this.ropeMountPoint = ropeMountPoint;
             this.materialPile = materialPile;
             this.riskText = riskText;
             this.statusText = statusText;
             this.attachConfig = attachConfig;
             this.onSubmit = onSubmit;
+            UpdateRopeMountVisual();
         }
 
         public void PopulateMaterialPile(IReadOnlyList<MaterialConfig> materials)
@@ -136,6 +141,8 @@ namespace BrokenAnchor.Build
                     ropeTiePiece = null;
                 }
             }
+
+            RefreshRopeTiePiece();
         }
 
         private AnchorPiece CreatePieceInstance(MaterialConfig config)
@@ -216,18 +223,6 @@ namespace BrokenAnchor.Build
             }
         }
 
-        public void SetRopeTiePoint()
-        {
-            if (selectedPiece != null && !pieces.Contains(selectedPiece))
-            {
-                return;
-            }
-
-            ropeTiePiece = selectedPiece;
-            UpdateStatus();
-            UpdateRisks();
-        }
-
         public void ClearBuild()
         {
             for (var i = 0; i < materialPieces.Count; i++)
@@ -249,6 +244,7 @@ namespace BrokenAnchor.Build
             draggingPiece = null;
             ClearJointLines();
             ClearPreviewLines();
+            UpdateRopeMountVisual();
             UpdateRisks();
             UpdateStatus();
         }
@@ -280,6 +276,7 @@ namespace BrokenAnchor.Build
             }
 
             DrawJointLines();
+            RefreshRopeTiePiece();
             UpdateRisks();
             UpdateStatus();
         }
@@ -648,6 +645,7 @@ namespace BrokenAnchor.Build
                 return;
             }
 
+            RefreshRopeTiePiece();
             var risks = BuildRiskEvaluator.Evaluate(pieces, joints, ropeTiePiece);
             riskText.text = string.Join("\n", risks.ToArray());
         }
@@ -659,9 +657,96 @@ namespace BrokenAnchor.Build
                 return;
             }
 
+            RefreshRopeTiePiece();
             var selectedName = selectedPiece == null ? "未选择" : selectedPiece.Config.displayName.Replace("\n", " / ");
-            var tieName = ropeTiePiece == null ? "未设置" : ropeTiePiece.Config.displayName.Replace("\n", " / ");
-            statusText.text = $"拼装区 {pieces.Count}/{materialPieces.Count}  连接 {joints.Count}  选中 {selectedName}  绑点 {tieName}";
+            var tieName = ropeTiePiece == null ? "未覆盖" : ropeTiePiece.Config.displayName.Replace("\n", " / ");
+            statusText.text = $"拼装区 {pieces.Count}/{materialPieces.Count}  连接 {joints.Count}  选中 {selectedName}  挂点 {tieName}";
+        }
+
+        private void RefreshRopeTiePiece()
+        {
+            var mountedPiece = FindMountedPiece();
+            if (ropeTiePiece == mountedPiece)
+            {
+                return;
+            }
+
+            ropeTiePiece = mountedPiece;
+            UpdateRopeMountVisual();
+        }
+
+        private AnchorPiece FindMountedPiece()
+        {
+            if (ropeMountPoint == null)
+            {
+                return null;
+            }
+
+            var mountRect = GetRopeMountRect();
+            var mountArea = Mathf.Max(1f, mountRect.width * mountRect.height);
+            AnchorPiece bestPiece = null;
+            var bestCoverage = 0f;
+            for (var i = 0; i < pieces.Count; i++)
+            {
+                var piece = pieces[i];
+                if (piece == null)
+                {
+                    continue;
+                }
+
+                var coverage = GetRectOverlapArea(GetLocalRect(piece), mountRect) / mountArea;
+                if (coverage > bestCoverage)
+                {
+                    bestCoverage = coverage;
+                    bestPiece = piece;
+                }
+            }
+
+            return bestCoverage >= RopeMountMinCoverage ? bestPiece : null;
+        }
+
+        private Rect GetRopeMountRect()
+        {
+            var corners = new Vector3[4];
+            ropeMountPoint.GetWorldCorners(corners);
+            var min = new Vector2(float.MaxValue, float.MaxValue);
+            var max = new Vector2(float.MinValue, float.MinValue);
+            for (var i = 0; i < corners.Length; i++)
+            {
+                var local = (Vector2)dragSurface.InverseTransformPoint(corners[i]);
+                min = Vector2.Min(min, local);
+                max = Vector2.Max(max, local);
+            }
+
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
+
+        private static float GetRectOverlapArea(Rect a, Rect b)
+        {
+            var width = Mathf.Min(a.xMax, b.xMax) - Mathf.Max(a.xMin, b.xMin);
+            var height = Mathf.Min(a.yMax, b.yMax) - Mathf.Max(a.yMin, b.yMin);
+            if (width <= 0f || height <= 0f)
+            {
+                return 0f;
+            }
+
+            return width * height;
+        }
+
+        private void UpdateRopeMountVisual()
+        {
+            if (ropeMountPoint == null)
+            {
+                return;
+            }
+
+            var image = ropeMountPoint.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = ropeTiePiece == null
+                    ? new Color(0.92f, 0.68f, 0.28f, 0.75f)
+                    : new Color(0.45f, 0.98f, 0.72f, 0.85f);
+            }
         }
 
         private Vector2 GetPilePosition(int index)
@@ -836,6 +921,7 @@ namespace BrokenAnchor.Build
             if (ropeTiePiece == piece)
             {
                 ropeTiePiece = null;
+                UpdateRopeMountVisual();
             }
 
             if (selectedPiece == piece)

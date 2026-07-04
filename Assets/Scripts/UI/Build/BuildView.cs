@@ -36,7 +36,7 @@ namespace BrokenAnchor.UI
             var workspace = UIBuilder.CreateRect(root, "Workspace", new Vector2(0.22f, 0.15f), new Vector2(0.76f, 0.88f), Vector2.zero, Vector2.zero);
             workspace.gameObject.AddComponent<Image>().color = new Color(0.11f, 0.16f, 0.16f, 1f);
 
-            var gridText = UIBuilder.CreateText(workspace, "WorkspaceHint", "从旁边材料堆拖入拼装区；贴边组合后可旋转、翻转、设为绑点。", 18, new Color(0.63f, 0.72f, 0.7f, 0.75f), TextAnchor.LowerCenter);
+            var gridText = UIBuilder.CreateText(workspace, "WorkspaceHint", "从旁边材料堆拖入拼装区；贴边组合后可旋转、翻转。把一个物品覆盖到上方挂点来连接绳子。", 18, new Color(0.63f, 0.72f, 0.7f, 0.75f), TextAnchor.LowerCenter);
             gridText.rectTransform.anchorMin = new Vector2(0f, 0f);
             gridText.rectTransform.anchorMax = new Vector2(1f, 0.12f);
             gridText.rectTransform.offsetMin = Vector2.zero;
@@ -44,6 +44,14 @@ namespace BrokenAnchor.UI
 
             var connectionLayer = UIBuilder.CreateRect(workspace, "ConnectionLayer", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             connectionLayer.SetAsFirstSibling();
+
+            var ropeMountPoint = UIBuilder.CreateRect(workspace, "RopeMountPoint", new Vector2(0.5f, 0.88f), new Vector2(0.5f, 0.88f), new Vector2(-42f, -20f), new Vector2(42f, 20f));
+            ropeMountPoint.gameObject.AddComponent<Image>().color = new Color(0.92f, 0.68f, 0.28f, 0.75f);
+            var mountLabel = UIBuilder.CreateText(ropeMountPoint, "Label", "绳子挂点", 15, new Color(0.08f, 0.09f, 0.08f), TextAnchor.MiddleCenter);
+            mountLabel.rectTransform.anchorMin = Vector2.zero;
+            mountLabel.rectTransform.anchorMax = Vector2.one;
+            mountLabel.rectTransform.offsetMin = Vector2.zero;
+            mountLabel.rectTransform.offsetMax = Vector2.zero;
 
             var side = UIBuilder.CreateRect(root, "RiskPanel", new Vector2(0.78f, 0.15f), new Vector2(0.97f, 0.88f), Vector2.zero, Vector2.zero);
             side.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.13f, 0.15f, 1f);
@@ -68,15 +76,13 @@ namespace BrokenAnchor.UI
 
             var rotateButton = CreateActionButton(side, "RotateButton", "旋转", 0);
             var flipButton = CreateActionButton(side, "FlipButton", "翻转", 1);
-            var tieButton = CreateActionButton(side, "TieButton", "设为绑点", 2);
-            var clearButton = CreateActionButton(side, "ClearButton", "清空", 3);
-            var submitButton = CreateActionButton(side, "SubmitButton", "下锚", 4);
+            var clearButton = CreateActionButton(side, "ClearButton", "清空", 2);
+            var submitButton = CreateActionButton(side, "SubmitButton", "下锚", 3);
 
             view.controller = root.gameObject.AddComponent<BuildController>();
-            view.controller.Initialize(root, workspace, connectionLayer, pile, riskText, statusText, new AttachConfig(), result => view.submitCallback?.Invoke(result));
+            view.controller.Initialize(root, workspace, connectionLayer, ropeMountPoint, pile, riskText, statusText, new AttachConfig(), result => view.submitCallback?.Invoke(result));
             rotateButton.onClick.AddListener(view.controller.RotateSelected);
             flipButton.onClick.AddListener(view.controller.FlipSelected);
-            tieButton.onClick.AddListener(view.controller.SetRopeTiePoint);
             clearButton.onClick.AddListener(view.controller.ClearBuild);
             submitButton.onClick.AddListener(view.controller.Submit);
             return view;

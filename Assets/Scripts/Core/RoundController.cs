@@ -4,6 +4,10 @@ using BrokenAnchor.Config;
 using BrokenAnchor.Simulation;
 using BrokenAnchor.UI;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+#if UNITY_EDITOR
+using UnityEditor.SceneManagement;
+#endif
 
 namespace BrokenAnchor.Core
 {
@@ -45,7 +49,27 @@ namespace BrokenAnchor.Core
 
         public void ShowMainMenu()
         {
-            flow.Show(GameView.MainMenu);
+            ReloadActiveScene();
+        }
+
+        private static void ReloadActiveScene()
+        {
+            var activeScene = SceneManager.GetActiveScene();
+            if (activeScene.buildIndex >= 0)
+            {
+                SceneManager.LoadScene(activeScene.buildIndex);
+                return;
+            }
+
+#if UNITY_EDITOR
+            if (!string.IsNullOrEmpty(activeScene.path))
+            {
+                EditorSceneManager.LoadScene(activeScene.path);
+                return;
+            }
+#endif
+
+            SceneManager.LoadScene(activeScene.name);
         }
 
         public void ShowBriefing()
