@@ -12,6 +12,17 @@ namespace BrokenAnchor.Config
 
         public static List<MaterialConfig> CreateMaterials()
         {
+            var prefabMaterials = PiecePrefabCatalog.LoadMaterialConfigs();
+            if (prefabMaterials.Count > 0)
+            {
+                return prefabMaterials;
+            }
+
+            return CreateFallbackMaterials();
+        }
+
+        private static List<MaterialConfig> CreateFallbackMaterials()
+        {
             return new List<MaterialConfig>
             {
                 new MaterialConfig("iron_block", "IronBlock\n铁块", new Vector2(110, 72), 85, 7.8f, 0.55f, 80, 55, 0.45f, 0.35f, 0.25f, 0.2f, new Color(0.36f, 0.43f, 0.49f)),

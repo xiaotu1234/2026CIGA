@@ -14,6 +14,9 @@ namespace BrokenAnchor.Build
         private readonly List<AttachJoint> joints = new List<AttachJoint>();
         private readonly List<Image> jointLines = new List<Image>();
 
+        private const float ColliderSampleStep = 8f;
+        private const int CircleSampleCount = 32;
+
         private RectTransform workspace;
         private RectTransform connectionLayer;
         private RectTransform materialTray;
@@ -221,6 +224,143 @@ namespace BrokenAnchor.Build
         }
 
         private float GetAttachLength(AnchorPiece a, AnchorPiece b)
+        {
+            var colliderA = a.ShapeCollider;
+            var colliderB = b.ShapeCollider;
+            if (colliderA != null && colliderB != null)
+            {
+                var distance = colliderA.Distance(colliderB);
+                if (distance.isValid && (distance.isOverlapped || distance.distance <= attachConfig.snapTolerance))
+                {
+                    return EstimateColliderAttachLength(colliderA, colliderB);
+                }
+
+                return 0f;
+            }
+
+            return GetRectAttachLength(a, b);
+        }
+
+        private float EstimateColliderAttachLength(Collider2D colliderA, Collider2D colliderB)
+        {
+            var outlineA = new List<Vector2>();
+            var outlineB = new List<Vector2>();
+            BuildColliderOutline(colliderA, outlineA);
+            BuildColliderOutline(colliderB, outlineB);
+
+            if (outlineA.Count < 2 || outlineB.Count < 2)
+            {
+                return GetBoundsAttachLength(colliderA.bounds, colliderB.bounds);
+            }
+
+            var lengthFromA = EstimateOutlineProximityLength(outlineA, colliderB, IsClosedCollider(colliderA));
+            var lengthFromB = EstimateOutlineProximityLength(outlineB, colliderA, IsClosedCollider(colliderB));
+            return Mathf.Max(lengthFromA, lengthFromB);
+        }
+
+        private void BuildColliderOutline(Collider2D source, List<Vector2> outline)
+        {
+            if (source is BoxCollider2D box)
+            {
+                var half = box.size * 0.5f;
+                AddWorldPoint(outline, box.transform, box.offset + new Vector2(-half.x, -half.y));
+                AddWorldPoint(outline, box.transform, box.offset + new Vector2(-half.x, half.y));
+                AddWorldPoint(outline, box.transform, box.offset + new Vector2(half.x, half.y));
+                AddWorldPoint(outline, box.transform, box.offset + new Vector2(half.x, -half.y));
+                return;
+            }
+
+            if (source is CircleCollider2D circle)
+            {
+                for (var i = 0; i < CircleSampleCount; i++)
+                {
+                    var angle = i * Mathf.PI * 2f / CircleSampleCount;
+                    var local = circle.offset + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * circle.radius;
+                    AddWorldPoint(outline, circle.transform, local);
+                }
+
+                return;
+            }
+
+            if (source is PolygonCollider2D polygon)
+            {
+                for (var path = 0; path < polygon.pathCount; path++)
+                {
+                    var points = polygon.GetPath(path);
+                    for (var i = 0; i < points.Length; i++)
+                    {
+                        AddWorldPoint(outline, polygon.transform, polygon.offset + points[i]);
+                    }
+                }
+
+                return;
+            }
+
+            if (source is EdgeCollider2D edge)
+            {
+                for (var i = 0; i < edge.points.Length; i++)
+                {
+                    AddWorldPoint(outline, edge.transform, edge.offset + edge.points[i]);
+                }
+            }
+        }
+
+        private static void AddWorldPoint(List<Vector2> points, Transform transform, Vector2 localPoint)
+        {
+            points.Add(transform.TransformPoint(localPoint));
+        }
+
+        private float EstimateOutlineProximityLength(List<Vector2> outline, Collider2D target, bool closed)
+        {
+            var total = 0f;
+            var segmentCount = closed ? outline.Count : outline.Count - 1;
+            for (var i = 0; i < segmentCount; i++)
+            {
+                var start = outline[i];
+                var end = outline[(i + 1) % outline.Count];
+                total += EstimateSegmentProximityLength(start, end, target);
+            }
+
+            return total;
+        }
+
+        private float EstimateSegmentProximityLength(Vector2 start, Vector2 end, Collider2D target)
+        {
+            var segmentLength = Vector2.Distance(start, end);
+            if (segmentLength <= 0f)
+            {
+                return 0f;
+            }
+
+            var steps = Mathf.Max(1, Mathf.CeilToInt(segmentLength / ColliderSampleStep));
+            var attachedSteps = 0;
+            for (var i = 0; i < steps; i++)
+            {
+                var t = (i + 0.5f) / steps;
+                var samplePoint = Vector2.Lerp(start, end, t);
+                var closest = target.ClosestPoint(samplePoint);
+                if (Vector2.Distance(samplePoint, closest) <= attachConfig.snapTolerance)
+                {
+                    attachedSteps++;
+                }
+            }
+
+            return segmentLength * attachedSteps / steps;
+        }
+
+        private static bool IsClosedCollider(Collider2D source)
+        {
+            return !(source is EdgeCollider2D);
+        }
+
+        private float GetBoundsAttachLength(Bounds boundsA, Bounds boundsB)
+        {
+            var horizontalOverlap = Mathf.Min(boundsA.max.x, boundsB.max.x) - Mathf.Max(boundsA.min.x, boundsB.min.x);
+            var verticalOverlap = Mathf.Min(boundsA.max.y, boundsB.max.y) - Mathf.Max(boundsA.min.y, boundsB.min.y);
+            return Mathf.Max(0f, horizontalOverlap, verticalOverlap);
+        }
+
+        private float GetRectAttachLength(AnchorPiece a, AnchorPiece b)
         {
             var rectA = GetLocalRect(a);
             var rectB = GetLocalRect(b);

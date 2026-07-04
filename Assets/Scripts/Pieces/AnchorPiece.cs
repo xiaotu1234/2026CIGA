@@ -10,8 +10,11 @@ namespace BrokenAnchor.Pieces
     [RequireComponent(typeof(RectTransform))]
     public class AnchorPiece : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
     {
-        public MaterialConfig Config { get; private set; }
+        [SerializeField] private MaterialConfig config = new MaterialConfig();
+
+        public MaterialConfig Config => config;
         public RectTransform RectTransform { get; private set; }
+        public Collider2D ShapeCollider { get; private set; }
 
         private BuildController owner;
         private RectTransform workspace;
@@ -22,12 +25,22 @@ namespace BrokenAnchor.Pieces
 
         public void Initialize(MaterialConfig config, BuildController owner, RectTransform workspace)
         {
-            Config = config;
+            if (config != null)
+            {
+                this.config = config.Clone(config.prefabAssetPath);
+            }
+
+            if (this.config == null)
+            {
+                this.config = new MaterialConfig();
+            }
+
             this.owner = owner;
             this.workspace = workspace;
 
             RectTransform = GetComponent<RectTransform>();
-            RectTransform.sizeDelta = config.size;
+            RectTransform.sizeDelta = this.config.size;
+            ShapeCollider = GetComponent<Collider2D>();
 
             image = GetComponent<Image>();
             if (image == null)
@@ -35,7 +48,7 @@ namespace BrokenAnchor.Pieces
                 image = gameObject.AddComponent<Image>();
             }
 
-            normalColor = image.sprite == null ? config.color : image.color;
+            normalColor = image.sprite == null ? this.config.color : image.color;
             image.color = normalColor;
 
             var outline = GetComponent<Outline>();
@@ -51,11 +64,11 @@ namespace BrokenAnchor.Pieces
             label = labelTransform == null ? null : labelTransform.GetComponent<Text>();
             if (label == null)
             {
-                label = UIBuilder.CreateText(transform, "Label", config.displayName, 15, Color.white, TextAnchor.MiddleCenter);
+                label = UIBuilder.CreateText(transform, "Label", this.config.displayName, 15, Color.white, TextAnchor.MiddleCenter);
             }
             else
             {
-                label.text = config.displayName;
+                label.text = this.config.displayName;
                 label.font = UIBuilder.Font;
                 label.fontSize = 15;
                 label.color = Color.white;
@@ -65,6 +78,33 @@ namespace BrokenAnchor.Pieces
             label.rectTransform.anchorMax = Vector2.one;
             label.rectTransform.offsetMin = Vector2.zero;
             label.rectTransform.offsetMax = Vector2.zero;
+        }
+
+        public MaterialConfig CreateConfigSnapshot(string prefabAssetPath = null)
+        {
+            if (config == null)
+            {
+                config = new MaterialConfig();
+            }
+
+            var snapshot = config.Clone(prefabAssetPath);
+            if (string.IsNullOrEmpty(snapshot.id))
+            {
+                snapshot.id = gameObject.name;
+            }
+
+            if (string.IsNullOrEmpty(snapshot.displayName))
+            {
+                snapshot.displayName = gameObject.name;
+            }
+
+            if (snapshot.size == Vector2.zero)
+            {
+                var rect = GetComponent<RectTransform>();
+                snapshot.size = rect == null ? new Vector2(100f, 80f) : rect.sizeDelta;
+            }
+
+            return snapshot;
         }
 
         public void SetSelected(bool selected)

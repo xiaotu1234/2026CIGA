@@ -106,6 +106,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95fb551e4b29d8048a1e49d163c06b09, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  config:
+    id: iron_block
+    displayName: "IronBlock\n\u94C1\u5757"
+    size: {x: 110, y: 72}
+    weight: 85
+    density: 7.8
+    adhesive: 0.55
+    tensileStrength: 80
+    shearStrength: 55
+    dragCoeff: 0.45
+    frictionCoeff: 0.35
+    supportCoeff: 0.25
+    gripCoeff: 0.2
+    color: {r: 0.36, g: 0.43, b: 0.49, a: 1}
+    hasHookShape: 0
+    prefabAssetPath: Assets/Prefabs/Pieces/IronBlock.prefab
 --- !u!61 &6606002630446123583
 BoxCollider2D:
   m_ObjectHideFlags: 0

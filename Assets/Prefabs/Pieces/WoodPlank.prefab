@@ -106,6 +106,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95fb551e4b29d8048a1e49d163c06b09, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  config:
+    id: wood_plank
+    displayName: "WoodPlank\n\u6728\u677F"
+    size: {x: 170, y: 46}
+    weight: 28
+    density: 0.7
+    adhesive: 0.42
+    tensileStrength: 38
+    shearStrength: 30
+    dragCoeff: 0.75
+    frictionCoeff: 0.45
+    supportCoeff: 0.35
+    gripCoeff: 0.15
+    color: {r: 0.68, g: 0.47, b: 0.25, a: 1}
+    hasHookShape: 0
+    prefabAssetPath: Assets/Prefabs/Pieces/WoodPlank.prefab
 --- !u!61 &879929767585602912
 BoxCollider2D:
   m_ObjectHideFlags: 0
