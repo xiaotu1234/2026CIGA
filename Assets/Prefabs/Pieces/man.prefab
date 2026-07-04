@@ -192,8 +192,8 @@ MonoBehaviour:
     size: {x: 96, y: 96}
     weight: 54
     density: 7.6
-    adhesive: 1000
-    tensileStrength: 60
+    adhesive: 10
+    tensileStrength: 20
     shearStrength: 42
     dragCoeff: 0.55
     frictionCoeff: 0.5
