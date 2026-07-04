@@ -52,8 +52,8 @@ namespace BrokenAnchor.UI
             view.stageText.rectTransform.offsetMin = Vector2.zero;
             view.stageText.rectTransform.offsetMax = Vector2.zero;
 
-            view.metricText = UIBuilder.CreateText(side, "MetricText", "", 19, new Color(0.86f, 0.93f, 0.9f), TextAnchor.UpperLeft);
-            view.metricText.rectTransform.anchorMin = new Vector2(0.1f, 0.32f);
+            view.metricText = UIBuilder.CreateText(side, "MetricText", "", 14, new Color(0.86f, 0.93f, 0.9f), TextAnchor.UpperLeft);
+            view.metricText.rectTransform.anchorMin = new Vector2(0.08f, 0.08f);
             view.metricText.rectTransform.anchorMax = new Vector2(0.9f, 0.72f);
             view.metricText.rectTransform.offsetMin = Vector2.zero;
             view.metricText.rectTransform.offsetMax = Vector2.zero;

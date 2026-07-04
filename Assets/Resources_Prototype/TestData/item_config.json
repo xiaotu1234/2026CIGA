@@ -1,0 +1,506 @@
+{
+  "sourceWorkbook": "excel.xlsx",
+  "generatedAt": "2026-07-05",
+  "note": "Converted from user-provided Excel and wired into prototype runtime logic.",
+  "sourceSheet": "item",
+  "columns": [
+    {
+      "key": "itemId",
+      "sourceHeader": "道具ID"
+    },
+    {
+      "key": "itemName",
+      "sourceHeader": "道具名字"
+    },
+    {
+      "key": "prefab",
+      "sourceHeader": "perfab"
+    },
+    {
+      "key": "weightKg",
+      "sourceHeader": "道具重量（千克）"
+    },
+    {
+      "key": "defense",
+      "sourceHeader": "防御值"
+    },
+    {
+      "key": "health",
+      "sourceHeader": "血量"
+    },
+    {
+      "key": "sizeFactorReference",
+      "sourceHeader": "大小系数（参考用）"
+    },
+    {
+      "key": "guaranteedSpawnCount",
+      "sourceHeader": "必定刷出数量"
+    },
+    {
+      "key": "randomWeight",
+      "sourceHeader": "随机权重"
+    },
+    {
+      "key": "unlockLevel",
+      "sourceHeader": "解锁关卡"
+    }
+  ],
+  "items": [
+    {
+      "itemId": 1,
+      "itemName": "扎小人",
+      "prefab": "huh",
+      "weightKg": 0.2,
+      "defense": 105,
+      "health": 10,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 331,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 2,
+      "itemName": "冰红茶",
+      "prefab": "man",
+      "weightKg": 0.42,
+      "defense": 60,
+      "health": 12,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 285,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 3,
+      "itemName": "飞碟",
+      "prefab": "nokia",
+      "weightKg": 4.6,
+      "defense": 416,
+      "health": 60,
+      "sizeFactorReference": 6,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 176,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 4,
+      "itemName": "旧水管（弯、短）",
+      "prefab": "shuiguan",
+      "weightKg": 0.42,
+      "defense": 416,
+      "health": 12,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 285,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 5,
+      "itemName": "旧水管（弯、长）",
+      "prefab": "xiaobu",
+      "weightKg": 0.73,
+      "defense": 416,
+      "health": 24,
+      "sizeFactorReference": 4,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 256,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 6,
+      "itemName": "旧水管（直、短）",
+      "prefab": "xiaomei",
+      "weightKg": 0.42,
+      "defense": 416,
+      "health": 12,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 285,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 7,
+      "itemName": "旧水管（直、长）",
+      "prefab": "huh",
+      "weightKg": 0.73,
+      "defense": 416,
+      "health": 24,
+      "sizeFactorReference": 4,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 256,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 8,
+      "itemName": "烂靴子",
+      "prefab": "man",
+      "weightKg": 0.61,
+      "defense": 19,
+      "health": 6,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 265,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 9,
+      "itemName": "船锚玩具",
+      "prefab": "nokia",
+      "weightKg": 0.2,
+      "defense": 60,
+      "health": 8,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 331,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 10,
+      "itemName": "一罐鱼饵",
+      "prefab": "shuiguan",
+      "weightKg": 0.42,
+      "defense": 416,
+      "health": 12,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 285,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 11,
+      "itemName": "假饵",
+      "prefab": "xiaobu",
+      "weightKg": 0.2,
+      "defense": 60,
+      "health": 4,
+      "sizeFactorReference": 1,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 331,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 12,
+      "itemName": "外星人",
+      "prefab": "xiaomei",
+      "weightKg": 0.42,
+      "defense": 84,
+      "health": 12,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 285,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 13,
+      "itemName": "字母C",
+      "prefab": "huh",
+      "weightKg": 0.73,
+      "defense": 158,
+      "health": 18,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 0,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 14,
+      "itemName": "字母I",
+      "prefab": "man",
+      "weightKg": 0.73,
+      "defense": 158,
+      "health": 18,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 0,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 15,
+      "itemName": "字母G",
+      "prefab": "nokia",
+      "weightKg": 0.73,
+      "defense": 158,
+      "health": 18,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 0,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 16,
+      "itemName": "字母A",
+      "prefab": "shuiguan",
+      "weightKg": 0.73,
+      "defense": 158,
+      "health": 18,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 0,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 17,
+      "itemName": "手机",
+      "prefab": "xiaobu",
+      "weightKg": 0.42,
+      "defense": 416,
+      "health": 12,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 285,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 18,
+      "itemName": "奇异物质",
+      "prefab": "xiaomei",
+      "weightKg": 29,
+      "defense": 1,
+      "health": 30,
+      "sizeFactorReference": 1,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 122,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 19,
+      "itemName": "工牌",
+      "prefab": "huh",
+      "weightKg": 0.07,
+      "defense": 60,
+      "health": 8,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 407,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 20,
+      "itemName": "自行车",
+      "prefab": "man",
+      "weightKg": 2.64,
+      "defense": 416,
+      "health": 30,
+      "sizeFactorReference": 5,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 197,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 21,
+      "itemName": "烂眼镜",
+      "prefab": "nokia",
+      "weightKg": 0.28,
+      "defense": 13,
+      "health": 6,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 309,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 22,
+      "itemName": "浮木",
+      "prefab": "shuiguan",
+      "weightKg": 0.42,
+      "defense": 105,
+      "health": 15,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 285,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 23,
+      "itemName": "湿透的报纸",
+      "prefab": "xiaobu",
+      "weightKg": 0.02,
+      "defense": 21,
+      "health": 2,
+      "sizeFactorReference": 4,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 524,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 24,
+      "itemName": "破损的CD",
+      "prefab": "xiaomei",
+      "weightKg": 0.07,
+      "defense": 60,
+      "health": 4,
+      "sizeFactorReference": 1,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 407,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 25,
+      "itemName": "香蕉皮",
+      "prefab": "huh",
+      "weightKg": 0.12,
+      "defense": 84,
+      "health": 8,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 366,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 26,
+      "itemName": "啤酒瓶",
+      "prefab": "man",
+      "weightKg": 0.42,
+      "defense": 13,
+      "health": 9,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 285,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 27,
+      "itemName": "猫",
+      "prefab": "nokia",
+      "weightKg": 4.6,
+      "defense": 84,
+      "health": 16,
+      "sizeFactorReference": 4,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 397,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 28,
+      "itemName": "狗",
+      "prefab": "shuiguan",
+      "weightKg": 2.64,
+      "defense": 84,
+      "health": 16,
+      "sizeFactorReference": 4,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 419,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 29,
+      "itemName": "马",
+      "prefab": "xiaobu",
+      "weightKg": 4.6,
+      "defense": 84,
+      "health": 20,
+      "sizeFactorReference": 5,
+      "guaranteedSpawnCount": 0,
+      "randomWeight": 400,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 30,
+      "itemName": "“区”",
+      "prefab": "xiaomei",
+      "weightKg": 1.27,
+      "defense": 158,
+      "health": 18,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 2,
+      "randomWeight": 0,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 31,
+      "itemName": "碎玻璃",
+      "prefab": "huh",
+      "weightKg": 0.42,
+      "defense": 13,
+      "health": 6,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 285,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 32,
+      "itemName": "西瓜",
+      "prefab": "man",
+      "weightKg": 1.52,
+      "defense": 84,
+      "health": 12,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 221,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 33,
+      "itemName": "黄油",
+      "prefab": "nokia",
+      "weightKg": 0.2,
+      "defense": 1,
+      "health": 1,
+      "sizeFactorReference": 1,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 331,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 34,
+      "itemName": "塞罗眼睛",
+      "prefab": "shuiguan",
+      "weightKg": 0.12,
+      "defense": 1,
+      "health": 30,
+      "sizeFactorReference": 1,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 366,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 35,
+      "itemName": "初代奥特曼变身器",
+      "prefab": "xiaobu",
+      "weightKg": 0.28,
+      "defense": 60,
+      "health": 8,
+      "sizeFactorReference": 2,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 309,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 36,
+      "itemName": "青蛙教练",
+      "prefab": "xiaomei",
+      "weightKg": 1.01,
+      "defense": 84,
+      "health": 12,
+      "sizeFactorReference": 3,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 240,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 37,
+      "itemName": "奶龙",
+      "prefab": "huh",
+      "weightKg": 0.73,
+      "defense": 84,
+      "health": 16,
+      "sizeFactorReference": 4,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 256,
+      "unlockLevel": 1
+    },
+    {
+      "itemId": 38,
+      "itemName": "我的刀盾",
+      "prefab": "man",
+      "weightKg": 1.75,
+      "defense": 416,
+      "health": 40,
+      "sizeFactorReference": 4,
+      "guaranteedSpawnCount": 1,
+      "randomWeight": 215,
+      "unlockLevel": 1
+    }
+  ]
+}

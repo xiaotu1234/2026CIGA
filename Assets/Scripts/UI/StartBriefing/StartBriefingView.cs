@@ -84,9 +84,25 @@ namespace BrokenAnchor.UI
                 $"稳船目标：{level.stableDuration:0} s";
 
             var lines = "本局捞到的材料：\n";
+            var displayOrder = new List<string>();
+            var counts = new Dictionary<string, int>();
             for (var i = 0; i < materials.Count; i++)
             {
-                lines += $"- {materials[i].displayName.Replace("\n", " / ")}\n";
+                var displayName = materials[i].displayName.Replace("\n", " / ");
+                if (!counts.ContainsKey(displayName))
+                {
+                    counts.Add(displayName, 0);
+                    displayOrder.Add(displayName);
+                }
+
+                counts[displayName]++;
+            }
+
+            for (var i = 0; i < displayOrder.Count; i++)
+            {
+                var displayName = displayOrder[i];
+                var count = counts[displayName];
+                lines += count > 1 ? $"- {displayName} x{count}\n" : $"- {displayName}\n";
             }
 
             materialText.text = lines;

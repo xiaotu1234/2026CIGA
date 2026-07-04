@@ -7,7 +7,22 @@ namespace BrokenAnchor.Config
     {
         public static LevelConfig CreateLevel()
         {
+            if (PrototypeJsonConfigCatalog.TryCreateLevel(out var level))
+            {
+                return level;
+            }
+
             return new LevelConfig();
+        }
+
+        public static List<MaterialConfig> CreateMaterials(LevelConfig level)
+        {
+            if (PrototypeJsonConfigCatalog.TryCreateMaterials(level, out var materials))
+            {
+                return materials;
+            }
+
+            return CreateMaterials();
         }
 
         public static List<MaterialConfig> CreateMaterials()

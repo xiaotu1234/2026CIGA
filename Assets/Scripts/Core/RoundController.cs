@@ -40,7 +40,7 @@ namespace BrokenAnchor.Core
         public void StartNewRound()
         {
             level = PrototypeCatalog.CreateLevel();
-            materials = PrototypeCatalog.CreateMaterials();
+            materials = PrototypeCatalog.CreateMaterials(level);
             currentBuild = null;
             briefingView.Bind(level, materials);
             buildView.Bind(materials, OnBuildSubmitted);

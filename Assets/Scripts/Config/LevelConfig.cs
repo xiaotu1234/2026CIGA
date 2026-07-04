@@ -3,6 +3,7 @@ namespace BrokenAnchor.Config
     [System.Serializable]
     public class LevelConfig
     {
+        public int levelId = 1;
         public float shipWeight = 4200f;
         public string seaState = "急流 / 侧风";
         public float waterDepth = 32f;
@@ -14,5 +15,24 @@ namespace BrokenAnchor.Config
         public float sinkWaterAttack = 130f;            // 下沉阶段受到的水流伤害
         public float seabedWaterAttack = 90f;           // 触底阶段受到的水流伤害
         public int materialCount = 5;
+        public int minRandomItemCount = 0;
+        public float minTotalItemWeight = 0f;
+        public float recommendedWeightKg = 0f;
+        public float itemWeightCoefficient = 1f;
+        public string stormLevel = "";
+        public float buildTimeSeconds = 0f;
+        public float fallSpeedSoftLimitMetersPerSecond = 4f;
+        public float surfaceTensionCoefficient = 0.02f;
+        public float forceCoefficient = 1f;
+        public float weightDownForceCoefficient = 0.18f;
+        public float waterDragCoefficient = 0.1f;
+        public float thresholdCoefficient = 3f;
+        public float damageCoefficient = 0.01f;
+        public float healthCoefficient = 50f;
+        public float defenseToJointFrequencyCoefficient = 0.025f;
+        public float seabedPhysicsFrictionCoefficient = 0.7f;
+        public float seabedPhysicsBouncinessCoefficient = 0.02f;
+        public bool showConnectionHealthDebug = true;
+        public float rigidbodyMassCoefficient = 1f;
     }
 }

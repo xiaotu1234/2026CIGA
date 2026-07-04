@@ -1,0 +1,46 @@
+{
+  "sourceWorkbook": "excel.xlsx",
+  "generatedAt": "2026-07-05",
+  "note": "Converted from user-provided Excel and wired into prototype runtime logic.",
+  "sourceSheet": "Sheet1",
+  "parameters": {
+    "successDurationSeconds": 20,
+    "fallSpeedMetersPerSecond": 4,
+    "forceCoefficient": 1,
+    "thresholdCoefficient": 3,
+    "damageCoefficient": 1,
+    "healthCoefficient": 1
+  },
+  "entries": [
+    {
+      "key": "successDurationSeconds",
+      "label": "坚持时间(秒）",
+      "value": 20
+    },
+    {
+      "key": "fallSpeedMetersPerSecond",
+      "label": "掉落速度（m/s)",
+      "value": 4
+    },
+    {
+      "key": "forceCoefficient",
+      "label": "受力系数",
+      "value": 1
+    },
+    {
+      "key": "thresholdCoefficient",
+      "label": "阈值系数",
+      "value": 3
+    },
+    {
+      "key": "damageCoefficient",
+      "label": "伤害系数",
+      "value": 1
+    },
+    {
+      "key": "healthCoefficient",
+      "label": "血量系数",
+      "value": 1
+    }
+  ]
+}

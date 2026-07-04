@@ -23,6 +23,10 @@ namespace BrokenAnchor.Build
         public float defense;
         public float damageFalloff;
         public float currentStrength;
+        public float linearForceThreshold;
+        public float linearDamagePerSecond;
+        public float lastReactionForce;
+        public float torqueBreakThreshold;
         public float relativeDisplacement;
         public float damage;
         public bool isBroken;
@@ -40,6 +44,10 @@ namespace BrokenAnchor.Build
             defense = pieceA.Config.tensileStrength + pieceB.Config.tensileStrength;
             damageFalloff = 1f;
             currentStrength = currentHealth;
+            linearForceThreshold = 0f;
+            linearDamagePerSecond = 0f;
+            lastReactionForce = 0f;
+            torqueBreakThreshold = 0f;
             jointState = JointState.Stable;
         }
     }

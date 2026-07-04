@@ -1,0 +1,94 @@
+{
+  "sourceWorkbook": "excel.xlsx",
+  "generatedAt": "2026-07-05",
+  "note": "Converted from user-provided Excel and wired into prototype runtime logic.",
+  "sourceSheet": "global",
+  "parameters": {
+    "successDurationSeconds": 15,
+    "fallSpeedSoftLimitMetersPerSecond": 4,
+    "surfaceTensionCoefficient": 0.02,
+    "forceCoefficient": 1,
+    "weightDownForceCoefficient": 0.18,
+    "waterDragCoefficient": 0.1,
+    "thresholdCoefficient": 3,
+    "damageCoefficient": 1,
+    "healthCoefficient": 1,
+    "defenseToJointFrequencyCoefficient": 0.06,
+    "seabedPhysicsFrictionCoefficient": 0.7,
+    "seabedPhysicsBouncinessCoefficient": 0.02,
+    "showConnectionHealthDebug": 1,
+    "rigidbodyMassCoefficient": 1
+  },
+  "entries": [
+    {
+      "key": "successDurationSeconds",
+      "description": "坚持时间，单位秒。模拟持续达到该时间且船未进入危险区则成功。",
+      "value": 15
+    },
+    {
+      "key": "fallSpeedSoftLimitMetersPerSecond",
+      "description": "掉落速度软上限，单位 m/s。超过后会施加向上阻力。",
+      "value": 4
+    },
+    {
+      "key": "surfaceTensionCoefficient",
+      "description": "水面张力系数。控制穿过水面时的竖向水面力。",
+      "value": 0.02
+    },
+    {
+      "key": "forceCoefficient",
+      "description": "受力系数。控制绳子拉船/反拉相关的全局力倍率。",
+      "value": 1
+    },
+    {
+      "key": "weightDownForceCoefficient",
+      "description": "重量下压力系数。物品重量转换为向下力的倍率。",
+      "value": 0.18
+    },
+    {
+      "key": "waterDragCoefficient",
+      "description": "水阻系数。物品水阻参与速度衰减的全局倍率。",
+      "value": 0.1
+    },
+    {
+      "key": "thresholdCoefficient",
+      "description": "阈值系数。防御值转换为连接受力阈值的倍率。",
+      "value": 3
+    },
+    {
+      "key": "damageCoefficient",
+      "description": "伤害系数。超过连接阈值后的扣血速度倍率。",
+      "value": 1
+    },
+    {
+      "key": "healthCoefficient",
+      "description": "血量系数。物品健康值转换为连接最大血量的倍率。",
+      "value": 1
+    },
+    {
+      "key": "defenseToJointFrequencyCoefficient",
+      "description": "防御转关节频率系数。防御越高，Unity FixedJoint2D 越硬。",
+      "value": 0.06
+    },
+    {
+      "key": "seabedPhysicsFrictionCoefficient",
+      "description": "海底 Unity 物理材质摩擦系数。",
+      "value": 0.7
+    },
+    {
+      "key": "seabedPhysicsBouncinessCoefficient",
+      "description": "海底 Unity 物理材质弹性系数。",
+      "value": 0.02
+    },
+    {
+      "key": "showConnectionHealthDebug",
+      "description": "是否显示连接血量调试信息。1 显示，0 隐藏。",
+      "value": 1
+    },
+    {
+      "key": "rigidbodyMassCoefficient",
+      "description": "物品质量系数。物品重量转换为 Unity Rigidbody2D.mass 的全局倍率。",
+      "value": 1
+    }
+  ]
+}
