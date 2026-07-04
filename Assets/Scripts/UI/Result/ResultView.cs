@@ -7,11 +7,15 @@ namespace BrokenAnchor.UI
 {
     public class ResultView : MonoBehaviour
     {
-        private Text titleText;
-        private Text detailText;
-        private Button retryButton;
-        private Button backBuildButton;
-        private Button menuButton;
+        [SerializeField] private Text titleText;
+        [SerializeField] private Text detailText;
+        [SerializeField] private Button retryButton;
+        [SerializeField] private Button backBuildButton;
+        [SerializeField] private Button menuButton;
+
+        private Action onRetry;
+        private Action onBackBuild;
+        private Action onMenu;
 
         public static ResultView Create(Transform parent)
         {
@@ -34,18 +38,36 @@ namespace BrokenAnchor.UI
             view.retryButton = CreateButton(root, "RetryButton", "重新挑战", 0);
             view.backBuildButton = CreateButton(root, "BackBuildButton", "返回拼装", 1);
             view.menuButton = CreateButton(root, "MenuButton", "主菜单", 2);
+            view.BindGeneratedButtonClickEvents();
             return view;
         }
 
         public void Initialize(Action onRetry, Action onBackBuild, Action onMenu)
         {
-            retryButton.onClick.AddListener(() => onRetry());
-            backBuildButton.onClick.AddListener(() => onBackBuild());
-            menuButton.onClick.AddListener(() => onMenu());
+            ResolveReferences();
+            this.onRetry = onRetry;
+            this.onBackBuild = onBackBuild;
+            this.onMenu = onMenu;
+        }
+
+        public void OnRetryButtonClicked()
+        {
+            onRetry?.Invoke();
+        }
+
+        public void OnBackBuildButtonClicked()
+        {
+            onBackBuild?.Invoke();
+        }
+
+        public void OnMenuButtonClicked()
+        {
+            onMenu?.Invoke();
         }
 
         public void Bind(SimulationResult result)
         {
+            ResolveReferences();
             if (result.success)
             {
                 titleText.text = result.narrowSuccess ? "勉强成功" : "稳住了";
@@ -69,6 +91,35 @@ namespace BrokenAnchor.UI
             }
 
             detailText.text = text;
+        }
+
+        private void BindGeneratedButtonClickEvents()
+        {
+            retryButton.onClick.AddListener(OnRetryButtonClicked);
+            backBuildButton.onClick.AddListener(OnBackBuildButtonClicked);
+            menuButton.onClick.AddListener(OnMenuButtonClicked);
+        }
+
+        private void ResolveReferences()
+        {
+            titleText = titleText != null ? titleText : FindChildComponent<Text>("Title");
+            detailText = detailText != null ? detailText : FindChildComponent<Text>("Detail");
+            retryButton = retryButton != null ? retryButton : FindChildComponent<Button>("RetryButton");
+            backBuildButton = backBuildButton != null ? backBuildButton : FindChildComponent<Button>("BackBuildButton");
+            menuButton = menuButton != null ? menuButton : FindChildComponent<Button>("MenuButton");
+        }
+
+        private T FindChildComponent<T>(string childName) where T : Component
+        {
+            foreach (var child in GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name == childName)
+                {
+                    return child.GetComponent<T>();
+                }
+            }
+
+            return null;
         }
 
         private static Button CreateButton(Transform root, string name, string text, int index)

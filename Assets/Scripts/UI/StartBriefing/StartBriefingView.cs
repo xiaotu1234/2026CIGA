@@ -8,10 +8,13 @@ namespace BrokenAnchor.UI
 {
     public class StartBriefingView : MonoBehaviour
     {
-        private Text briefingText;
-        private Text materialText;
-        private Button startButton;
-        private Button backButton;
+        [SerializeField] private Text briefingText;
+        [SerializeField] private Text materialText;
+        [SerializeField] private Button startButton;
+        [SerializeField] private Button backButton;
+
+        private Action onStartBuild;
+        private Action onBack;
 
         public static StartBriefingView Create(Transform parent)
         {
@@ -48,17 +51,30 @@ namespace BrokenAnchor.UI
             view.backButton.GetComponent<RectTransform>().anchorMax = new Vector2(0.28f, 0.22f);
             view.backButton.GetComponent<RectTransform>().offsetMin = Vector2.zero;
             view.backButton.GetComponent<RectTransform>().offsetMax = Vector2.zero;
+            view.BindGeneratedButtonClickEvents();
             return view;
         }
 
         public void Initialize(Action onStartBuild, Action onBack)
         {
-            startButton.onClick.AddListener(() => onStartBuild());
-            backButton.onClick.AddListener(() => onBack());
+            ResolveReferences();
+            this.onStartBuild = onStartBuild;
+            this.onBack = onBack;
+        }
+
+        public void OnStartBuildButtonClicked()
+        {
+            onStartBuild?.Invoke();
+        }
+
+        public void OnBackButtonClicked()
+        {
+            onBack?.Invoke();
         }
 
         public void Bind(LevelConfig level, IReadOnlyList<MaterialConfig> materials)
         {
+            ResolveReferences();
             briefingText.text =
                 $"船重：{level.shipWeight:0} kg\n" +
                 $"海况：{level.seaState}\n" +
@@ -74,6 +90,33 @@ namespace BrokenAnchor.UI
             }
 
             materialText.text = lines;
+        }
+
+        private void BindGeneratedButtonClickEvents()
+        {
+            startButton.onClick.AddListener(OnStartBuildButtonClicked);
+            backButton.onClick.AddListener(OnBackButtonClicked);
+        }
+
+        private void ResolveReferences()
+        {
+            briefingText = briefingText != null ? briefingText : FindChildComponent<Text>("BriefingText");
+            materialText = materialText != null ? materialText : FindChildComponent<Text>("MaterialText");
+            startButton = startButton != null ? startButton : FindChildComponent<Button>("StartBuildButton");
+            backButton = backButton != null ? backButton : FindChildComponent<Button>("BackButton");
+        }
+
+        private T FindChildComponent<T>(string childName) where T : Component
+        {
+            foreach (var child in GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name == childName)
+                {
+                    return child.GetComponent<T>();
+                }
+            }
+
+            return null;
         }
     }
 }

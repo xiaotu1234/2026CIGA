@@ -9,14 +9,14 @@ namespace BrokenAnchor.UI
 {
     public class SimulationView : MonoBehaviour
     {
-        private SimulationController controller;
-        private RectTransform playArea;
-        private RectTransform ship;
-        private RectTransform anchor;
-        private RectTransform rope;
-        private Text stageText;
-        private Text metricText;
-        private Slider progress;
+        [SerializeField] private SimulationController controller;
+        [SerializeField] private RectTransform playArea;
+        [SerializeField] private RectTransform ship;
+        [SerializeField] private RectTransform anchor;
+        [SerializeField] private RectTransform rope;
+        [SerializeField] private Text stageText;
+        [SerializeField] private Text metricText;
+        [SerializeField] private Slider progress;
 
         public static SimulationView Create(Transform parent)
         {
@@ -62,20 +62,51 @@ namespace BrokenAnchor.UI
             view.progress = sliderRect.gameObject.AddComponent<Slider>();
             view.progress.minValue = 0f;
             view.progress.maxValue = 1f;
-
             view.controller = root.gameObject.AddComponent<SimulationController>();
-            view.controller.Initialize(view.playArea, view.ship, view.anchor, view.rope, view.stageText, view.metricText, view.progress, null);
+            view.InitializeController(null);
             return view;
         }
 
         public void Run(AnchorBuildResult build, LevelConfig level, Action<SimulationResult> onFinished)
         {
-            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, progress, onFinished);
+            ResolveReferences();
+            InitializeController(onFinished);
             controller.StartSimulation(build, level);
         }
 
-        public void OnEnable()
+        private void InitializeController(Action<SimulationResult> onFinished)
         {
+            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, progress, onFinished);
+        }
+
+        private void ResolveReferences()
+        {
+            controller = controller != null ? controller : GetComponent<SimulationController>();
+            if (controller == null)
+            {
+                controller = gameObject.AddComponent<SimulationController>();
+            }
+
+            playArea = playArea != null ? playArea : FindChildComponent<RectTransform>("PlayArea");
+            ship = ship != null ? ship : FindChildComponent<RectTransform>("Ship");
+            anchor = anchor != null ? anchor : FindChildComponent<RectTransform>("Anchor");
+            rope = rope != null ? rope : FindChildComponent<RectTransform>("Rope");
+            stageText = stageText != null ? stageText : FindChildComponent<Text>("StageText");
+            metricText = metricText != null ? metricText : FindChildComponent<Text>("MetricText");
+            progress = progress != null ? progress : FindChildComponent<Slider>("DangerProgress");
+        }
+
+        private T FindChildComponent<T>(string childName) where T : Component
+        {
+            foreach (var child in GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name == childName)
+                {
+                    return child.GetComponent<T>();
+                }
+            }
+
+            return null;
         }
 
         private static RectTransform CreateObject(Transform parent, string name, Vector2 size, Color color)

@@ -46,6 +46,7 @@ namespace BrokenAnchor.UI
 
         public void Initialize(Action onStart, Action onSettings, Action onQuit)
         {
+            ResolveReferences();
             this.onStart = onStart;
             this.onSettings = onSettings;
             this.onQuit = onQuit;
@@ -96,20 +97,9 @@ namespace BrokenAnchor.UI
 
         private void SetButtonsInteractable(bool interactable)
         {
-            if (startButton != null)
-            {
-                startButton.interactable = interactable;
-            }
-
-            if (settingsButton != null)
-            {
-                settingsButton.interactable = interactable;
-            }
-
-            if (quitButton != null)
-            {
-                quitButton.interactable = interactable;
-            }
+            if (startButton != null) startButton.interactable = interactable;
+            if (settingsButton != null) settingsButton.interactable = interactable;
+            if (quitButton != null) quitButton.interactable = interactable;
         }
 
         private void BindGeneratedButtonClickEvents()
@@ -117,6 +107,27 @@ namespace BrokenAnchor.UI
             startButton.onClick.AddListener(OnStartButtonClicked);
             settingsButton.onClick.AddListener(OnSettingsButtonClicked);
             quitButton.onClick.AddListener(OnQuitButtonClicked);
+        }
+
+        private void ResolveReferences()
+        {
+            startButton = startButton != null ? startButton : FindChildComponent<Button>("StartButton");
+            settingsButton = settingsButton != null ? settingsButton : FindChildComponent<Button>("SettingsButton");
+            quitButton = quitButton != null ? quitButton : FindChildComponent<Button>("QuitButton");
+            startAnimationPlayer = startAnimationPlayer != null ? startAnimationPlayer : GetComponent<Animation>();
+        }
+
+        private T FindChildComponent<T>(string childName) where T : Component
+        {
+            foreach (var child in GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name == childName)
+                {
+                    return child.GetComponent<T>();
+                }
+            }
+
+            return null;
         }
 
         private static Button CreateMenuButton(Transform root, string name, string text, int index)

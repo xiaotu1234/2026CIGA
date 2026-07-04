@@ -8,6 +8,11 @@ namespace BrokenAnchor.Core
     public class GameBootstrap : MonoBehaviour
     {
         [SerializeField] private MainMenuView mainMenuPrefab;
+        [SerializeField] private SettingsView settingsPrefab;
+        [SerializeField] private StartBriefingView startBriefingPrefab;
+        [SerializeField] private BuildView buildPrefab;
+        [SerializeField] private SimulationView simulationPrefab;
+        [SerializeField] private ResultView resultPrefab;
 
         private void Awake()
         {
@@ -18,12 +23,12 @@ namespace BrokenAnchor.Core
             var flow = gameObject.AddComponent<ViewFlowController>();
             var round = gameObject.AddComponent<RoundController>();
 
-            var mainMenu = CreateMainMenu(canvas.transform);
-            var settings = SettingsView.Create(canvas.transform);
-            var briefing = StartBriefingView.Create(canvas.transform);
-            var build = BuildView.Create(canvas.transform);
-            var simulation = SimulationView.Create(canvas.transform);
-            var result = ResultView.Create(canvas.transform);
+            var mainMenu = CreateView(mainMenuPrefab, canvas.transform, MainMenuView.Create, nameof(MainMenuView));
+            var settings = CreateView(settingsPrefab, canvas.transform, SettingsView.Create, nameof(SettingsView));
+            var briefing = CreateView(startBriefingPrefab, canvas.transform, StartBriefingView.Create, nameof(StartBriefingView));
+            var build = CreateView(buildPrefab, canvas.transform, BuildView.Create, nameof(BuildView));
+            var simulation = CreateView(simulationPrefab, canvas.transform, SimulationView.Create, nameof(SimulationView));
+            var result = CreateView(resultPrefab, canvas.transform, ResultView.Create, nameof(ResultView));
 
             flow.Register(GameView.MainMenu, mainMenu.gameObject);
             flow.Register(GameView.Settings, settings.gameObject);
@@ -44,15 +49,16 @@ namespace BrokenAnchor.Core
             flow.Show(GameView.MainMenu);
         }
 
-        private MainMenuView CreateMainMenu(Transform parent)
+        private static T CreateView<T>(T prefab, Transform parent, System.Func<Transform, T> fallbackFactory, string viewName)
+            where T : Component
         {
-            if (mainMenuPrefab != null)
+            if (prefab != null)
             {
-                return Instantiate(mainMenuPrefab, parent);
+                return Instantiate(prefab, parent, false);
             }
 
-            Debug.LogWarning("MainMenuView prefab is not assigned on GameBootstrap. Falling back to generated UI.");
-            return MainMenuView.Create(parent);
+            Debug.LogWarning($"{viewName} prefab is not assigned on GameBootstrap. Falling back to generated UI.");
+            return fallbackFactory(parent);
         }
 
         private static void EnsureCamera()

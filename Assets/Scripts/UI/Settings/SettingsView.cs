@@ -6,9 +6,11 @@ namespace BrokenAnchor.UI
 {
     public class SettingsView : MonoBehaviour
     {
-        private Button backButton;
-        private Toggle debugToggle;
-        private Slider volumeSlider;
+        [SerializeField] private Button backButton;
+        [SerializeField] private Toggle debugToggle;
+        [SerializeField] private Slider volumeSlider;
+
+        private Action onBack;
 
         public static SettingsView Create(Transform parent)
         {
@@ -56,12 +58,44 @@ namespace BrokenAnchor.UI
             view.backButton.GetComponent<RectTransform>().anchorMax = new Vector2(0.66f, 0.2f);
             view.backButton.GetComponent<RectTransform>().offsetMin = Vector2.zero;
             view.backButton.GetComponent<RectTransform>().offsetMax = Vector2.zero;
+            view.BindGeneratedButtonClickEvents();
             return view;
         }
 
         public void Initialize(Action onBack)
         {
-            backButton.onClick.AddListener(() => onBack());
+            ResolveReferences();
+            this.onBack = onBack;
+        }
+
+        public void OnBackButtonClicked()
+        {
+            onBack?.Invoke();
+        }
+
+        private void BindGeneratedButtonClickEvents()
+        {
+            backButton.onClick.AddListener(OnBackButtonClicked);
+        }
+
+        private void ResolveReferences()
+        {
+            backButton = backButton != null ? backButton : FindChildComponent<Button>("BackButton");
+            debugToggle = debugToggle != null ? debugToggle : FindChildComponent<Toggle>("DebugToggle");
+            volumeSlider = volumeSlider != null ? volumeSlider : FindChildComponent<Slider>("VolumeSlider");
+        }
+
+        private T FindChildComponent<T>(string childName) where T : Component
+        {
+            foreach (var child in GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name == childName)
+                {
+                    return child.GetComponent<T>();
+                }
+            }
+
+            return null;
         }
     }
 }
