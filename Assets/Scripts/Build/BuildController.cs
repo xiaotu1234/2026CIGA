@@ -194,6 +194,12 @@ namespace BrokenAnchor.Build
             var bottomToTop = Mathf.Abs(rectB.yMax - rectA.yMin);
 
             var attachLength = 0f;
+            if (horizontalOverlap > 0f && verticalOverlap > 0f)
+            {
+                var overlapAttachLength = Mathf.Max(horizontalOverlap, verticalOverlap);
+                attachLength = Mathf.Max(attachLength, overlapAttachLength, attachConfig.minAttachLength);
+            }
+
             if ((leftToRight <= attachConfig.snapTolerance || rightToLeft <= attachConfig.snapTolerance) && verticalOverlap > 0f)
             {
                 attachLength = Mathf.Max(attachLength, verticalOverlap);
