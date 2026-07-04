@@ -43,6 +43,7 @@ namespace BrokenAnchor.Simulation
         private float anchorScale = 0.55f;
         private float simulationElapsed;
         private float shipVelocity;
+        private float anchorSlowdown;
         private bool anchorOnSeabed;
         private Coroutine running;
         private float dangerBoundaryX;
@@ -78,6 +79,7 @@ namespace BrokenAnchor.Simulation
             remainingDistance = level.dangerZoneDistance;
             anchorDamage = 0f;
             brokenJoints = 0;
+            anchorSlowdown = 0f;
 
             if (running != null)
             {
@@ -114,6 +116,7 @@ namespace BrokenAnchor.Simulation
                     SeabedTick(deltaTime);
                 }
 
+                anchorSlowdown = CalculateAnchorSlowdown();
                 UpdateMetrics(Mathf.Max(0f, level.stableDuration - simulationElapsed));
                 yield return null;
             }
@@ -140,9 +143,13 @@ namespace BrokenAnchor.Simulation
         {
             anchor.anchoredPosition = Vector2.Lerp(new Vector2(-170f, 145f), new Vector2(-130f, 40f), t);
             anchorDamage = Mathf.Max(anchorDamage, Mathf.Clamp01((1.25f - AverageJointStrength()) * 0.35f));
-            brokenJoints = anchorDamage > 0.28f && build.joints.Count > 0 ? 1 : 0;
+            if (anchorDamage > 0.28f && build.joints.Count > 0)
+            {
+                BreakWeakestJoints(1);
+            }
+
             AnimateAnchorPieces(t, 0.35f + anchorDamage, false);
-            ApplyShipCurrent(deltaTime, 0.2f);
+            ApplyShipCurrent(deltaTime);
             DrawRope();
         }
 
@@ -156,7 +163,7 @@ namespace BrokenAnchor.Simulation
             anchorDamage = Mathf.Clamp01(anchorDamage + stress * deltaTime * 0.012f);
             if (anchorDamage > 0.55f && build.joints.Count > 1)
             {
-                brokenJoints = Mathf.Max(brokenJoints, 2);
+                BreakWeakestJoints(2);
             }
 
             AnimateAnchorPieces(Mathf.Clamp01(simulationElapsed / level.stableDuration), 0.65f + anchorDamage * 1.2f, false);
@@ -166,33 +173,132 @@ namespace BrokenAnchor.Simulation
                 AnimateAnchorPieces(1f, 0.45f + anchorDamage, true);
             }
 
-            ApplyShipCurrent(deltaTime, 0.45f);
+            ApplyShipCurrent(deltaTime);
             DrawRope();
         }
 
         private void SeabedTick(float deltaTime)
         {
             anchor.anchoredPosition += new Vector2(Mathf.Max(0.3f, shipVelocity) * deltaTime * 0.35f, 0f);
-            ApplyShipCurrent(deltaTime, 1f);
+            ApplyShipCurrent(deltaTime);
             AnimateAnchorPieces(Mathf.Clamp01(simulationElapsed / level.stableDuration), 0.45f + anchorDamage, true);
             DrawRope();
         }
 
-        private void ApplyShipCurrent(float deltaTime, float anchorEffectiveness)
+        private void ApplyShipCurrent(float deltaTime)
         {
-            var currentAcceleration = 26f + level.currentForceBase * 2.4f;
-            var preTouchHold = build.dragScore * 1.2f + build.totalWeight * 0.015f;
-            var seabedHold = build.gripScore * 12f + build.totalWeight * 0.06f + build.dragScore * 2.4f;
-            var holdPower = Mathf.Lerp(preTouchHold, seabedHold, anchorOnSeabed ? 1f : anchorEffectiveness);
-            holdPower *= Mathf.Clamp01(1f - anchorDamage * 0.75f);
+            var waterSpeed = 7f + level.currentForceBase * 0.95f;
+            var shipInertiaSpeed = Mathf.Clamp(level.shipWeight * 0.0018f, 3f, 10f);
+            anchorSlowdown = CalculateAnchorSlowdown();
 
-            var waterDrag = shipVelocity * (anchorOnSeabed ? 0.95f + holdPower * 0.035f : 0.12f);
-            shipVelocity += (currentAcceleration - holdPower * (anchorOnSeabed ? 1.45f : 0.35f) - waterDrag) * deltaTime;
+            var targetVelocity = waterSpeed + shipInertiaSpeed - anchorSlowdown;
+            if (waterSpeed > 0f)
+            {
+                targetVelocity = Mathf.Max(0.8f, targetVelocity);
+            }
+
+            shipVelocity = Mathf.Lerp(shipVelocity, targetVelocity, deltaTime * 1.8f);
             shipVelocity = Mathf.Clamp(shipVelocity, 0f, 42f);
 
             ship.anchoredPosition += new Vector2(shipVelocity * deltaTime * shipTravelPixelsPerMeter, 0f);
             UpdateRemainingDistanceFromShipPosition();
             progressSlider.value = 1f - remainingDistance / level.dangerZoneDistance;
+        }
+
+        private float CalculateAnchorSlowdown()
+        {
+            if (build == null || !build.isConnected || build.ropeTiePiece == null)
+            {
+                return 0f;
+            }
+
+            var connectedAnchorWeight = CalculateRopeConnectedAnchorWeight();
+            var seabedMultiplier = anchorOnSeabed
+                ? 1.35f + Mathf.Clamp(build.gripScore * 0.08f + CountSeabedContacts() * 0.05f, 0f, 0.55f)
+                : 1f;
+            var anchorHold = connectedAnchorWeight * 0.032f * seabedMultiplier;
+            anchorHold *= Mathf.Clamp01(1f - anchorDamage * 0.6f);
+
+            return Mathf.Max(0f, anchorHold);
+        }
+
+        private float CalculateRopeConnectedAnchorWeight()
+        {
+            if (build == null || build.ropeTiePiece == null)
+            {
+                return 0f;
+            }
+
+            var visited = new HashSet<AnchorPiece>();
+            var queue = new Queue<AnchorPiece>();
+            visited.Add(build.ropeTiePiece);
+            queue.Enqueue(build.ropeTiePiece);
+
+            while (queue.Count > 0)
+            {
+                var piece = queue.Dequeue();
+                for (var i = 0; i < build.joints.Count; i++)
+                {
+                    var joint = build.joints[i];
+                    if (joint.isBroken)
+                    {
+                        continue;
+                    }
+
+                    AnchorPiece next = null;
+                    if (joint.pieceA == piece)
+                    {
+                        next = joint.pieceB;
+                    }
+                    else if (joint.pieceB == piece)
+                    {
+                        next = joint.pieceA;
+                    }
+
+                    if (next != null && visited.Add(next))
+                    {
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+
+            var totalWeight = 0f;
+            foreach (var piece in visited)
+            {
+                totalWeight += piece.Config.weight;
+            }
+
+            return totalWeight;
+        }
+
+        private void BreakWeakestJoints(int targetBrokenCount)
+        {
+            while (brokenJoints < targetBrokenCount)
+            {
+                AttachJoint weakestJoint = null;
+                for (var i = 0; i < build.joints.Count; i++)
+                {
+                    var joint = build.joints[i];
+                    if (joint.isBroken)
+                    {
+                        continue;
+                    }
+
+                    if (weakestJoint == null || joint.currentStrength < weakestJoint.currentStrength)
+                    {
+                        weakestJoint = joint;
+                    }
+                }
+
+                if (weakestJoint == null)
+                {
+                    return;
+                }
+
+                weakestJoint.isBroken = true;
+                weakestJoint.jointState = JointState.Broken;
+                brokenJoints++;
+            }
         }
 
         private float AverageJointStrength()
@@ -227,7 +333,7 @@ namespace BrokenAnchor.Simulation
 
         private void DrawRope()
         {
-            var start = ship.anchoredPosition + new Vector2(-52f, -30f);
+            var start = GetRopeStartPosition();
             var end = GetRopeEndPosition();
             var delta = end - start;
             rope.anchoredPosition = (start + end) * 0.5f;
@@ -256,6 +362,11 @@ namespace BrokenAnchor.Simulation
         private float GetShipRightEdge()
         {
             return ship.anchoredPosition.x + ship.sizeDelta.x * 0.5f;
+        }
+
+        private Vector2 GetRopeStartPosition()
+        {
+            return ship.anchoredPosition + new Vector2(-52f, -30f);
         }
 
         private Vector2 GetRopeEndPosition()
