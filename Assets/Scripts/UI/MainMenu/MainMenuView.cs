@@ -10,6 +10,7 @@ namespace BrokenAnchor.UI
         [SerializeField] private Button startButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button quitButton;
+        [SerializeField] private Button skipStartAnimationButton;
         [SerializeField] private Animation startAnimationPlayer;
         [SerializeField] private AnimationClip startanimation;
 
@@ -17,6 +18,8 @@ namespace BrokenAnchor.UI
         private Action onSettings;
         private Action onQuit;
         private bool isStarting;
+        private Coroutine startRoutine;
+        private bool buttonClickEventsBound;
 
         public static MainMenuView Create(Transform parent)
         {
@@ -39,7 +42,9 @@ namespace BrokenAnchor.UI
             view.startButton = CreateMenuButton(root, "StartButton", "开始游戏", 0);
             view.settingsButton = CreateMenuButton(root, "SettingsButton", "设置", 1);
             view.quitButton = CreateMenuButton(root, "QuitButton", "退出", 2);
+            view.skipStartAnimationButton = CreateSkipStartAnimationButton(root);
             view.BindGeneratedButtonClickEvents();
+            view.SetSkipStartAnimationButtonVisible(false);
 
             return view;
         }
@@ -50,6 +55,8 @@ namespace BrokenAnchor.UI
             this.onStart = onStart;
             this.onSettings = onSettings;
             this.onQuit = onQuit;
+            BindGeneratedButtonClickEvents();
+            SetSkipStartAnimationButtonVisible(false);
         }
 
         public void OnStartButtonClicked()
@@ -59,7 +66,28 @@ namespace BrokenAnchor.UI
                 return;
             }
 
-            StartCoroutine(PlayStartAnimationThenStart());
+            startRoutine = StartCoroutine(PlayStartAnimationThenStart());
+        }
+
+        public void OnSkipStartAnimationButtonClicked()
+        {
+            if (!isStarting)
+            {
+                return;
+            }
+
+            if (startRoutine != null)
+            {
+                StopCoroutine(startRoutine);
+                startRoutine = null;
+            }
+
+            if (startAnimationPlayer != null)
+            {
+                startAnimationPlayer.Stop();
+            }
+
+            CompleteStartTransition();
         }
 
         public void OnSettingsButtonClicked()
@@ -76,6 +104,7 @@ namespace BrokenAnchor.UI
         {
             isStarting = true;
             SetButtonsInteractable(false);
+            SetSkipStartAnimationButtonVisible(true);
 
             if (startAnimationPlayer != null && startanimation != null)
             {
@@ -90,6 +119,18 @@ namespace BrokenAnchor.UI
                 yield return new WaitForSeconds(startanimation.length);
             }
 
+            startRoutine = null;
+            CompleteStartTransition();
+        }
+
+        private void CompleteStartTransition()
+        {
+            if (!isStarting)
+            {
+                return;
+            }
+
+            SetSkipStartAnimationButtonVisible(false);
             onStart?.Invoke();
             SetButtonsInteractable(true);
             isStarting = false;
@@ -102,11 +143,26 @@ namespace BrokenAnchor.UI
             if (quitButton != null) quitButton.interactable = interactable;
         }
 
+        private void SetSkipStartAnimationButtonVisible(bool visible)
+        {
+            if (skipStartAnimationButton != null)
+            {
+                skipStartAnimationButton.gameObject.SetActive(visible);
+            }
+        }
+
         private void BindGeneratedButtonClickEvents()
         {
+            if (buttonClickEventsBound)
+            {
+                return;
+            }
+
             startButton.onClick.AddListener(OnStartButtonClicked);
             settingsButton.onClick.AddListener(OnSettingsButtonClicked);
             quitButton.onClick.AddListener(OnQuitButtonClicked);
+            skipStartAnimationButton.onClick.AddListener(OnSkipStartAnimationButtonClicked);
+            buttonClickEventsBound = true;
         }
 
         private void ResolveReferences()
@@ -114,6 +170,12 @@ namespace BrokenAnchor.UI
             startButton = startButton != null ? startButton : FindChildComponent<Button>("StartButton");
             settingsButton = settingsButton != null ? settingsButton : FindChildComponent<Button>("SettingsButton");
             quitButton = quitButton != null ? quitButton : FindChildComponent<Button>("QuitButton");
+            skipStartAnimationButton = skipStartAnimationButton != null ? skipStartAnimationButton : FindChildComponent<Button>("SkipStartAnimationButton");
+            if (skipStartAnimationButton == null)
+            {
+                skipStartAnimationButton = CreateSkipStartAnimationButton(transform);
+            }
+
             startAnimationPlayer = startAnimationPlayer != null ? startAnimationPlayer : GetComponent<Animation>();
         }
 
@@ -136,6 +198,17 @@ namespace BrokenAnchor.UI
             var rect = button.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(0.39f, 0.42f - index * 0.1f);
             rect.anchorMax = new Vector2(0.61f, 0.49f - index * 0.1f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            return button;
+        }
+
+        private static Button CreateSkipStartAnimationButton(Transform root)
+        {
+            var button = UIBuilder.CreateButton(root, "SkipStartAnimationButton", "跳过人生", null);
+            var rect = button.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.87f, 0.89f);
+            rect.anchorMax = new Vector2(0.96f, 0.96f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
             return button;
