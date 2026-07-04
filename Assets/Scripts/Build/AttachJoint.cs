@@ -21,9 +21,10 @@ namespace BrokenAnchor.Build
         public float maxHealth;
         public float currentHealth;
         public float defense;
+        public float forceThreshold;
         public float damageFalloff;
-        public float currentStrength;
         public float relativeDisplacement;
+        public float lastForce;
         public float damage;
         public bool isBroken;
         public JointState jointState;
@@ -37,9 +38,10 @@ namespace BrokenAnchor.Build
             adhesiveAbility = pieceA.Config.adhesive + pieceB.Config.adhesive;
             maxHealth = adhesiveAbility;
             currentHealth = maxHealth;
-            defense = pieceA.Config.tensileStrength + pieceB.Config.tensileStrength;
+            defense = pieceA.Config.tensileStrength >= pieceB.Config.tensileStrength ? pieceA.Config.tensileStrength : pieceB.Config.tensileStrength;
+            forceThreshold = 0f;
             damageFalloff = 1f;
-            currentStrength = currentHealth;
+            lastForce = 0f;
             jointState = JointState.Stable;
         }
     }

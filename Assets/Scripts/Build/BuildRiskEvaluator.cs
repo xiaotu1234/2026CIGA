@@ -33,7 +33,7 @@ namespace BrokenAnchor.Build
             for (var i = 0; i < pieces.Count; i++)
             {
                 totalWeight += pieces[i].Config.weight;
-                grip += pieces[i].Config.gripCoeff;
+                grip += pieces[i].Config.frictionCoeff;
             }
 
             if (totalWeight < 150f)

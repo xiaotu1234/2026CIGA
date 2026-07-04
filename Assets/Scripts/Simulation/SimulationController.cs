@@ -17,6 +17,7 @@ namespace BrokenAnchor.Simulation
             public AnchorPiece source;
             public RectTransform rect;
             public Rigidbody2D body;
+            public Collider2D collider;
             public readonly List<FixedJoint2D> joints = new List<FixedJoint2D>();
             public bool weaklyConnected;
             public bool grounded;
@@ -24,7 +25,6 @@ namespace BrokenAnchor.Simulation
 
         private class SeabedSegment
         {
-            public EdgeCollider2D collider;
             public Vector2 start;
             public Vector2 end;
         }
@@ -41,15 +41,18 @@ namespace BrokenAnchor.Simulation
         private RectTransform dangerZoneIndicator;
         private Text stageText;
         private Text metricText;
+        private Text jointDebugText;
         private Slider progressSlider;
         private SeabedFillGraphic seabedFill;
         private Action<SimulationResult> onFinished;
 
         private AnchorBuildResult build;
         private LevelConfig level;
+        private GlobalConfig globalConfig = new GlobalConfig();
         private GameObject physicsRoot;
         private PhysicsMaterial2D seabedMaterial;
         private PhysicsMaterial2D pieceMaterial;
+        private EdgeCollider2D seabedSurfaceCollider;
         private float remainingDistance;
         private float anchorDamage;
         private int brokenJoints;
@@ -73,35 +76,27 @@ namespace BrokenAnchor.Simulation
         private const float AnchorScale = 0.55f;
         private const float PhysicsScale = 0.012f;
         private const float InversePhysicsScale = 1f / PhysicsScale;
-        private const float InitialGravityScale = 6f;
-        private const float SeabedGravityScale = 3.6f;
         private const float MinEffectiveJointHealth = 0.01f;
         private const float AnchorSpeedPixelsPerMeter = 24f;
         private const float DangerZoneRevealDistance = 120f;
         private const float RopeVisualAngleDegrees = 60f;
-        private const float RopePullAngleDegrees = 30f;
+        private const float RopePullAngleDegrees = 0f;
         private const float RopeVisualLengthPadding = 220f;
-        private const float RopePullForceMultiplier = 1f;
-        private const float RopePullBaseForce = 8f;
-        private const float RopePullForcePerCurrent = 1.4f;
-        private const float RopeAttachLocalXFactor = 0.45f;
-        private const float RopeAttachLocalYFactor = 0.32f;
         private const float AntiLiftDragLinear = 0.08f;
         private const float AntiLiftDragMaxAcceleration = 18f;
-        private const float JointStrengthMultiplier = 3f;
-        private const float JointBreakForceScale = 0.075f;
-        private const float JointBreakTorqueScale = 0.035f;
+        private const float WaterAngularDragForceScale = 0.22f;
         private const float SurfaceY = 130f;
         private const float CameraAnchorTargetY = 35f;
         private const float MaxCameraOffsetY = 1250f;
         private const float SeabedSegmentLength = 36f;
         private const float SeabedVisualThickness = 100f;
-        private const float SeabedColliderRadius = 0.18f;
+        private const float SeabedColliderRadius = PhysicsScale * 2f;
+        private const float SeabedContactTolerance = 1f;
         private const float SeabedSpawnPadding = 360f;
         private const float SeabedDespawnPadding = 260f;
         private const float SeabedMinY = -1172f;
         private const float SeabedMaxY = -890f;
-        private const float SeabedMaxStepY = 14f;
+        private const float SeabedMaxStepY = 8f;
 
         private static readonly Vector2 InitialAnchorPosition = new Vector2(-330f, SurfaceY);
 
@@ -112,6 +107,7 @@ namespace BrokenAnchor.Simulation
             RectTransform rope,
             Text stageText,
             Text metricText,
+            Text jointDebugText,
             Slider progressSlider,
             Action<SimulationResult> onFinished)
         {
@@ -122,6 +118,7 @@ namespace BrokenAnchor.Simulation
             dangerZoneIndicator = playArea != null ? playArea.Find("DangerZone") as RectTransform : null;
             this.stageText = stageText;
             this.metricText = metricText;
+            this.jointDebugText = jointDebugText;
             this.progressSlider = progressSlider;
             this.onFinished = onFinished;
             SetDangerZoneVisible(false);
@@ -131,9 +128,11 @@ namespace BrokenAnchor.Simulation
         {
             this.build = build;
             this.level = level;
+            globalConfig = ItemConfigLoader.LoadGlobals();
             remainingDistance = level.dangerZoneDistance;
             anchorDamage = 0f;
             brokenJoints = 0;
+            UpdateJointDebugText();
 
             if (running != null)
             {
@@ -171,7 +170,7 @@ namespace BrokenAnchor.Simulation
                 }
 
                 ApplyRopeForce();
-                ApplyAntiLiftResistance();
+                ApplyDropSpeedResistance();
                 DetectSeabedContacts();
                 SyncJointBreakStates();
                 ApplyAnchorDrivenShipMotion(deltaTime);
@@ -181,6 +180,7 @@ namespace BrokenAnchor.Simulation
                 UpdateCameraFollow(deltaTime);
                 DrawRope();
                 UpdateMetrics(Mathf.Max(0f, level.stableDuration - simulationElapsed));
+                UpdateJointDebugText();
                 yield return null;
             }
 
@@ -190,16 +190,13 @@ namespace BrokenAnchor.Simulation
 
         private void WaterEntryTick()
         {
-            var t = Mathf.Clamp01(simulationElapsed / WaterEntryDuration);
-            var entryForce = Vector2.Lerp(new Vector2(0.2f, -1.3f), new Vector2(1.2f, -0.5f), t);
-
             for (var i = 0; i < simulatedPieces.Count; i++)
             {
                 var piece = simulatedPieces[i];
-                var massFactor = Mathf.Max(0.2f, piece.source.Config.weight * 0.012f);
-                piece.body.gravityScale = InitialGravityScale;
-                piece.body.AddForce(entryForce * massFactor, ForceMode2D.Force);
-                piece.body.AddTorque((piece.weaklyConnected ? 0.22f : 0.08f) * Mathf.Sin(Time.time + i), ForceMode2D.Force);
+                piece.body.gravityScale = 0f;
+                var submerged = GetSubmergedRatio(piece);
+                ApplyWeightBuoyancyAndWaterDrag(piece, submerged);
+                ApplyWaterSurfaceTension(piece, submerged, i);
             }
         }
 
@@ -208,12 +205,8 @@ namespace BrokenAnchor.Simulation
             for (var i = 0; i < simulatedPieces.Count; i++)
             {
                 var piece = simulatedPieces[i];
-                var material = piece.source.Config;
-                var downwardBias = Mathf.Clamp(material.weight * 0.008f - material.dragCoeff * 0.18f, 0.08f, 1.4f);
-                var waterDrag = -piece.body.velocity * Mathf.Clamp(material.dragCoeff * 0.12f, 0.02f, 0.22f);
-
-                piece.body.gravityScale = InitialGravityScale;
-                piece.body.AddForce(new Vector2(0f, -downwardBias) + waterDrag, ForceMode2D.Force);
+                piece.body.gravityScale = 0f;
+                ApplyWeightBuoyancyAndWaterDrag(piece, Mathf.Max(GetSubmergedRatio(piece), 0.65f));
             }
         }
 
@@ -222,12 +215,50 @@ namespace BrokenAnchor.Simulation
             for (var i = 0; i < simulatedPieces.Count; i++)
             {
                 var piece = simulatedPieces[i];
-                var material = piece.source.Config;
-                var drag = piece.body.velocity * Mathf.Clamp(material.frictionCoeff * 0.35f, 0.05f, 0.75f);
-
-                piece.body.gravityScale = SeabedGravityScale;
-                piece.body.AddForce(-drag, ForceMode2D.Force);
+                piece.body.gravityScale = 0f;
+                ApplyWeightBuoyancyAndWaterDrag(piece, 1f);
             }
+        }
+
+        private void ApplyWeightBuoyancyAndWaterDrag(SimulatedPiece piece, float submerged)
+        {
+            var material = piece.source.Config;
+            var body = piece.body;
+            var weightForce = Mathf.Max(0f, material.weight) * Mathf.Max(0f, globalConfig.weightForceScale);
+            var waterDrag = -body.velocity * material.dragCoeff * Mathf.Max(0f, globalConfig.waterDragForceScale) * Mathf.Clamp01(submerged);
+            var itemFriction = GetItemFriction(material);
+
+            body.AddForce(Vector2.down * weightForce + waterDrag, ForceMode2D.Force);
+            ApplyAntiLiftPenalty(body);
+            body.AddTorque(-body.angularVelocity * Mathf.Clamp(itemFriction * WaterAngularDragForceScale, 0.02f, 1.2f), ForceMode2D.Force);
+        }
+
+        private void ApplyWaterSurfaceTension(SimulatedPiece piece, float submerged, int index)
+        {
+            if (submerged <= 0f || submerged >= 1f)
+            {
+                return;
+            }
+
+            var material = piece.source.Config;
+            var downwardSpeed = Mathf.Max(0f, -piece.body.velocity.y);
+            var contactStrength = 1f - Mathf.Abs(submerged - 0.5f) * 2f;
+            var tension = Mathf.Max(0f, globalConfig.waterSurfaceTensionCoefficient) *
+                contactStrength *
+                (1f + downwardSpeed) *
+                material.dragCoeff;
+
+            piece.body.AddForce(Vector2.up * tension * Mathf.Max(0.1f, piece.body.mass), ForceMode2D.Force);
+        }
+
+        private static float GetItemFriction(MaterialConfig material)
+        {
+            if (material == null)
+            {
+                return 0f;
+            }
+
+            return Mathf.Max(0f, material.frictionCoeff);
         }
 
         private void ApplyAnchorDrivenShipMotion(float deltaTime)
@@ -249,23 +280,38 @@ namespace BrokenAnchor.Simulation
                 return;
             }
 
-            var pullForce = (RopePullBaseForce + Mathf.Max(0f, level.currentForceBase) * RopePullForcePerCurrent) * RopePullForceMultiplier;
-            tiePiece.body.AddForceAtPosition(GetRopePullDirection() * pullForce * tiePiece.body.mass, GetRopeAttachPhysicsPosition(tiePiece), ForceMode2D.Force);
+            var pullForce = Mathf.Max(0f, level.currentForceBase) * Mathf.Max(0f, globalConfig.forceCoefficient);
+            tiePiece.body.AddForceAtPosition(GetRopePullDirection() * pullForce, GetRopeAttachPhysicsPosition(tiePiece), ForceMode2D.Force);
         }
 
-        private void ApplyAntiLiftResistance()
+        private static void ApplyAntiLiftPenalty(Rigidbody2D body)
         {
+            if (body.velocity.y <= 0f)
+            {
+                return;
+            }
+
+            var upwardSpeedPixels = body.velocity.y * InversePhysicsScale;
+            var acceleration = Mathf.Min(AntiLiftDragMaxAcceleration, upwardSpeedPixels * AntiLiftDragLinear);
+            body.AddForce(Vector2.down * acceleration * body.mass, ForceMode2D.Force);
+        }
+
+        private void ApplyDropSpeedResistance()
+        {
+            var limit = Mathf.Max(0f, globalConfig.dropSpeedLimitMetersPerSecond);
+            if (limit <= 0f)
+            {
+                return;
+            }
+
             for (var i = 0; i < simulatedPieces.Count; i++)
             {
                 var body = simulatedPieces[i].body;
-                if (body.velocity.y <= 0f)
+                var velocity = body.velocity;
+                if (velocity.y < -limit)
                 {
-                    continue;
+                    body.velocity = new Vector2(velocity.x, -limit);
                 }
-
-                var upwardSpeedPixels = body.velocity.y * InversePhysicsScale;
-                var acceleration = Mathf.Min(AntiLiftDragMaxAcceleration, upwardSpeedPixels * AntiLiftDragLinear);
-                body.AddForce(Vector2.down * acceleration * body.mass, ForceMode2D.Force);
             }
         }
 
@@ -280,25 +326,68 @@ namespace BrokenAnchor.Simulation
                     continue;
                 }
 
-                if (!joint.isBroken && !HasLiveJoint(pieceA, pieceB.body))
+                var liveJoint = FindLiveJoint(pieceA, pieceB.body);
+                if (!joint.isBroken && liveJoint == null)
                 {
                     BreakJoint(joint, pieceA, pieceB);
                     continue;
                 }
 
-                joint.damage = joint.isBroken ? 1f : 0f;
-                joint.currentHealth = joint.isBroken ? 0f : joint.maxHealth;
-                joint.currentStrength = joint.currentHealth;
-                joint.jointState = joint.isBroken ? JointState.Broken : JointState.Stable;
+                if (!joint.isBroken)
+                {
+                    ApplyJointDamage(joint, liveJoint);
+                }
             }
 
             anchorDamage = CalculateAnchorDamage();
+        }
+
+        private void ApplyJointDamage(AttachJoint joint, FixedJoint2D liveJoint)
+        {
+            if (liveJoint == null || joint.maxHealth <= MinEffectiveJointHealth)
+            {
+                return;
+            }
+
+            joint.lastForce = liveJoint.GetReactionForce(Time.fixedDeltaTime).magnitude;
+            var overForce = Mathf.Max(0f, joint.lastForce - joint.forceThreshold);
+            if (overForce > 0f)
+            {
+                var damage = overForce * Mathf.Max(0f, globalConfig.damageCoefficient) * Time.deltaTime;
+                joint.currentHealth = Mathf.Max(0f, joint.currentHealth - damage);
+            }
+
+            joint.damage = Mathf.Clamp01(1f - joint.currentHealth / joint.maxHealth);
+            if (joint.currentHealth <= MinEffectiveJointHealth)
+            {
+                if (pieceLookup.TryGetValue(joint.pieceA, out var pieceA) &&
+                    pieceLookup.TryGetValue(joint.pieceB, out var pieceB))
+                {
+                    BreakJoint(joint, pieceA, pieceB);
+                }
+                return;
+            }
+
+            if (overForce <= 0f)
+            {
+                joint.jointState = JointState.Stable;
+            }
+            else if (joint.damage >= 0.65f)
+            {
+                joint.jointState = JointState.Sliding;
+            }
+            else
+            {
+                joint.jointState = JointState.Stretching;
+            }
         }
 
         private void BreakJoint(AttachJoint joint, SimulatedPiece pieceA, SimulatedPiece pieceB)
         {
             joint.isBroken = true;
             joint.jointState = JointState.Broken;
+            joint.currentHealth = 0f;
+            joint.damage = 1f;
             brokenJoints++;
 
             DestroyMatchingJoint(pieceA, pieceB.body);
@@ -306,6 +395,11 @@ namespace BrokenAnchor.Simulation
         }
 
         private static bool HasLiveJoint(SimulatedPiece owner, Rigidbody2D connectedBody)
+        {
+            return FindLiveJoint(owner, connectedBody) != null;
+        }
+
+        private static FixedJoint2D FindLiveJoint(SimulatedPiece owner, Rigidbody2D connectedBody)
         {
             for (var i = owner.joints.Count - 1; i >= 0; i--)
             {
@@ -318,11 +412,11 @@ namespace BrokenAnchor.Simulation
 
                 if (joint.connectedBody == connectedBody)
                 {
-                    return true;
+                    return joint;
                 }
             }
 
-            return false;
+            return null;
         }
 
         private static void DestroyMatchingJoint(SimulatedPiece owner, Rigidbody2D connectedBody)
@@ -389,8 +483,8 @@ namespace BrokenAnchor.Simulation
             {
                 var piece = simulatedPieces[i];
                 var uiPosition = ToUiPosition(piece.body.position);
-                var bottom = uiPosition.y - piece.rect.sizeDelta.y * 0.5f;
-                piece.grounded = bottom <= GetSeabedHeight(uiPosition.x) + 6f;
+                var bottom = GetPiecePhysicsBottomY(piece);
+                piece.grounded = bottom <= GetSeabedHeight(uiPosition.x) + SeabedContactTolerance;
                 if (piece.grounded)
                 {
                     contacts++;
@@ -401,6 +495,26 @@ namespace BrokenAnchor.Simulation
             {
                 anchorOnSeabed = true;
             }
+        }
+
+        private static float GetSubmergedRatio(SimulatedPiece piece)
+        {
+            var uiPosition = ToUiPosition(piece.body.position);
+            var scaledSize = GetScaledRectSize(piece.rect);
+            var halfHeight = scaledSize.y * 0.5f;
+            var bottom = uiPosition.y - halfHeight;
+            var height = Mathf.Max(1f, scaledSize.y);
+            return Mathf.Clamp01((SurfaceY - bottom) / height);
+        }
+
+        private static float GetPiecePhysicsBottomY(SimulatedPiece piece)
+        {
+            if (piece.collider != null)
+            {
+                return ToUiPosition(new Vector2(0f, piece.collider.bounds.min.y)).y;
+            }
+
+            return ToUiPosition(piece.body.position).y - GetScaledRectSize(piece.rect).y * 0.5f;
         }
 
         private void ResetVisuals()
@@ -521,18 +635,7 @@ namespace BrokenAnchor.Simulation
 
         private static Vector2 GetRopeAttachPhysicsPosition(SimulatedPiece tiePiece)
         {
-            var localOffset = new Vector2(
-                tiePiece.rect.sizeDelta.x * RopeAttachLocalXFactor,
-                tiePiece.rect.sizeDelta.y * RopeAttachLocalYFactor) * PhysicsScale;
-            return tiePiece.body.position + Rotate(localOffset, tiePiece.body.rotation);
-        }
-
-        private static Vector2 Rotate(Vector2 value, float degrees)
-        {
-            var radians = degrees * Mathf.Deg2Rad;
-            var sin = Mathf.Sin(radians);
-            var cos = Mathf.Cos(radians);
-            return new Vector2(value.x * cos - value.y * sin, value.x * sin + value.y * cos);
+            return tiePiece.body.position;
         }
 
         private SimulatedPiece GetRopeTieSimPiece()
@@ -555,6 +658,54 @@ namespace BrokenAnchor.Simulation
                 $"\u65ad\u5f00\u8fde\u63a5\uff1a{brokenJoints}\n" +
                 $"\u6d77\u5e95\u63a5\u89e6\uff1a{CountSeabedContacts()} \u4e2a\u90e8\u4ef6\n" +
                 $"\u7a33\u8239\u5269\u4f59\uff1a{Mathf.Max(0f, remainingStageTime):0.0} s";
+        }
+
+        private void UpdateJointDebugText()
+        {
+            if (jointDebugText == null)
+            {
+                return;
+            }
+
+            var isEnabled = globalConfig.showJointHealthDebug != 0;
+            if (!isEnabled)
+            {
+                jointDebugText.text = string.Empty;
+                jointDebugText.gameObject.SetActive(false);
+                return;
+            }
+
+            jointDebugText.gameObject.SetActive(true);
+            var builder = new System.Text.StringBuilder();
+            builder.AppendLine("连接血量");
+            if (build == null || build.joints.Count == 0)
+            {
+                builder.AppendLine("无连接");
+                jointDebugText.text = builder.ToString();
+                return;
+            }
+
+            for (var i = 0; i < build.joints.Count; i++)
+            {
+                var joint = build.joints[i];
+                var healthPercent = joint.maxHealth > 0f ? Mathf.Clamp01(joint.currentHealth / joint.maxHealth) * 100f : 0f;
+                builder.Append("J");
+                builder.Append(i + 1);
+                builder.Append(' ');
+                builder.Append(joint.jointState);
+                builder.Append(" HP ");
+                builder.Append(joint.currentHealth.ToString("0.0"));
+                builder.Append('/');
+                builder.Append(joint.maxHealth.ToString("0.0"));
+                builder.Append(" ");
+                builder.Append(healthPercent.ToString("0"));
+                builder.Append("% F ");
+                builder.Append(joint.lastForce.ToString("0.0"));
+                builder.Append(" T ");
+                builder.AppendLine(joint.forceThreshold.ToString("0.0"));
+            }
+
+            jointDebugText.text = builder.ToString();
         }
 
         private void BuildAnchorVisualAndPhysics()
@@ -587,10 +738,10 @@ namespace BrokenAnchor.Simulation
             {
                 var source = build.pieces[i];
                 var rect = CreateSimPieceRect(source);
-                rect.sizeDelta = source.RectTransform.sizeDelta * AnchorScale;
+                rect.sizeDelta = source.RectTransform.sizeDelta;
                 rect.anchoredPosition = InitialAnchorPosition + (source.RectTransform.anchoredPosition - center) * AnchorScale;
                 rect.localRotation = source.RectTransform.localRotation;
-                rect.localScale = source.RectTransform.localScale;
+                rect.localScale = ScaleVector(source.RectTransform.localScale, AnchorScale);
 
                 ConfigureVisual(source, rect);
 
@@ -600,24 +751,24 @@ namespace BrokenAnchor.Simulation
 
                 var body = bodyObject.AddComponent<Rigidbody2D>();
                 body.bodyType = RigidbodyType2D.Dynamic;
-                body.gravityScale = InitialGravityScale;
-                body.mass = Mathf.Max(0.1f, source.Config.weight * 0.02f);
+                body.gravityScale = 0f;
+                body.mass = Mathf.Max(0.1f, source.Config.weight * Mathf.Max(0f, globalConfig.itemMassScale));
                 body.drag = Mathf.Clamp(source.Config.dragCoeff * 0.35f, 0.02f, 1.2f);
-                body.angularDrag = Mathf.Clamp(source.Config.frictionCoeff * 0.75f, 0.05f, 1.5f);
+                body.angularDrag = Mathf.Clamp(GetItemFriction(source.Config) * 0.75f, 0.05f, 1.5f);
                 body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
                 body.interpolation = RigidbodyInterpolation2D.Interpolate;
                 body.position = ToPhysicsPosition(rect.anchoredPosition);
                 body.rotation = rect.localEulerAngles.z;
+                body.velocity = Vector2.down * Mathf.Max(0f, globalConfig.initialAnchorDownVelocityMetersPerSecond);
 
-                var collider = bodyObject.AddComponent<BoxCollider2D>();
-                collider.size = rect.sizeDelta * PhysicsScale;
-                collider.sharedMaterial = pieceMaterial;
+                var collider = CreatePhysicsCollider(source, rect, bodyObject);
 
                 var simPiece = new SimulatedPiece
                 {
                     source = source,
                     rect = rect,
                     body = body,
+                    collider = collider,
                     weaklyConnected = CountJointsForPiece(source) <= 1
                 };
 
@@ -735,13 +886,96 @@ namespace BrokenAnchor.Simulation
             label.rectTransform.offsetMax = Vector2.zero;
         }
 
+        private Collider2D CreatePhysicsCollider(AnchorPiece source, RectTransform rect, GameObject bodyObject)
+        {
+            var sourceCollider = source.ShapeCollider;
+            var colliderScale = GetColliderScale(rect);
+            Collider2D collider;
+            if (sourceCollider is PolygonCollider2D sourcePolygon)
+            {
+                var polygon = bodyObject.AddComponent<PolygonCollider2D>();
+                polygon.pathCount = sourcePolygon.pathCount;
+                for (var path = 0; path < sourcePolygon.pathCount; path++)
+                {
+                    polygon.SetPath(path, ScaleColliderPoints(sourcePolygon.GetPath(path), colliderScale));
+                }
+
+                polygon.offset = Vector2.Scale(sourcePolygon.offset, colliderScale);
+                polygon.useDelaunayMesh = sourcePolygon.useDelaunayMesh;
+                collider = polygon;
+            }
+            else if (sourceCollider is BoxCollider2D sourceBox)
+            {
+                var box = bodyObject.AddComponent<BoxCollider2D>();
+                box.size = Vector2.Scale(sourceBox.size, AbsVector(colliderScale));
+                box.offset = Vector2.Scale(sourceBox.offset, colliderScale);
+                collider = box;
+            }
+            else if (sourceCollider is CircleCollider2D sourceCircle)
+            {
+                var circle = bodyObject.AddComponent<CircleCollider2D>();
+                circle.radius = sourceCircle.radius * Mathf.Max(Mathf.Abs(colliderScale.x), Mathf.Abs(colliderScale.y));
+                circle.offset = Vector2.Scale(sourceCircle.offset, colliderScale);
+                collider = circle;
+            }
+            else if (sourceCollider is EdgeCollider2D sourceEdge)
+            {
+                var edge = bodyObject.AddComponent<EdgeCollider2D>();
+                edge.points = ScaleColliderPoints(sourceEdge.points, colliderScale);
+                edge.offset = Vector2.Scale(sourceEdge.offset, colliderScale);
+                edge.edgeRadius = sourceEdge.edgeRadius * Mathf.Max(Mathf.Abs(colliderScale.x), Mathf.Abs(colliderScale.y));
+                collider = edge;
+            }
+            else
+            {
+                var box = bodyObject.AddComponent<BoxCollider2D>();
+                box.size = GetScaledRectSize(rect) * PhysicsScale;
+                collider = box;
+            }
+
+            collider.sharedMaterial = pieceMaterial;
+            return collider;
+        }
+
+        private static Vector2 GetColliderScale(RectTransform rect)
+        {
+            return new Vector2(rect.localScale.x * PhysicsScale, rect.localScale.y * PhysicsScale);
+        }
+
+        private static Vector2[] ScaleColliderPoints(Vector2[] points, Vector2 scale)
+        {
+            var scaled = new Vector2[points.Length];
+            for (var i = 0; i < points.Length; i++)
+            {
+                scaled[i] = Vector2.Scale(points[i], scale);
+            }
+
+            return scaled;
+        }
+
+        private static Vector2 AbsVector(Vector2 value)
+        {
+            return new Vector2(Mathf.Abs(value.x), Mathf.Abs(value.y));
+        }
+
+        private static Vector3 ScaleVector(Vector3 value, float scale)
+        {
+            return new Vector3(value.x * scale, value.y * scale, value.z);
+        }
+
+        private static Vector2 GetScaledRectSize(RectTransform rect)
+        {
+            return new Vector2(
+                Mathf.Abs(rect.sizeDelta.x * rect.localScale.x),
+                Mathf.Abs(rect.sizeDelta.y * rect.localScale.y));
+        }
+
         private void BuildPhysicsJoints()
         {
             for (var i = 0; i < build.joints.Count; i++)
             {
                 var sourceJoint = build.joints[i];
-                sourceJoint.currentHealth = sourceJoint.maxHealth;
-                sourceJoint.currentStrength = sourceJoint.currentHealth;
+                ConfigureJointRuntimeStats(sourceJoint);
                 sourceJoint.damage = 0f;
                 sourceJoint.isBroken = false;
                 sourceJoint.jointState = JointState.Stable;
@@ -761,26 +995,27 @@ namespace BrokenAnchor.Simulation
                 joint.connectedBody = pieceB.body;
                 joint.autoConfigureConnectedAnchor = true;
                 joint.enableCollision = false;
-                joint.frequency = Mathf.Clamp(sourceJoint.currentStrength * 2.5f, 1.5f, 10f);
+                joint.frequency = sourceJoint.defense * Mathf.Max(0f, globalConfig.jointFrequencyPerDefense);
                 joint.dampingRatio = 0.65f;
-                joint.breakForce = CalculateJointBreakForce(sourceJoint, pieceA, pieceB);
-                joint.breakTorque = CalculateJointBreakTorque(sourceJoint, pieceA, pieceB);
+                joint.breakForce = Mathf.Infinity;
+                joint.breakTorque = Mathf.Infinity;
                 pieceA.joints.Add(joint);
             }
         }
 
-        private static float CalculateJointBreakForce(AttachJoint joint, SimulatedPiece pieceA, SimulatedPiece pieceB)
+        private void ConfigureJointRuntimeStats(AttachJoint joint)
         {
-            var massFactor = Mathf.Max(1f, pieceA.body.mass + pieceB.body.mass);
-            var healthFactor = Mathf.Max(1f, joint.maxHealth + joint.defense);
-            return Mathf.Max(0.01f, healthFactor * massFactor * JointBreakForceScale * JointStrengthMultiplier);
-        }
+            var pieceAHealth = Mathf.Max(0f, joint.pieceA.Config.adhesive);
+            var pieceBHealth = Mathf.Max(0f, joint.pieceB.Config.adhesive);
+            var maxDefense = Mathf.Max(joint.pieceA.Config.tensileStrength, joint.pieceB.Config.tensileStrength);
+            var thresholdCoefficient = Mathf.Max(0f, globalConfig.thresholdCoefficient);
+            var healthCoefficient = Mathf.Max(0f, globalConfig.healthCoefficient);
 
-        private static float CalculateJointBreakTorque(AttachJoint joint, SimulatedPiece pieceA, SimulatedPiece pieceB)
-        {
-            var sizeFactor = Mathf.Max(1f, (pieceA.rect.sizeDelta.magnitude + pieceB.rect.sizeDelta.magnitude) * 0.5f);
-            var healthFactor = Mathf.Max(1f, joint.maxHealth + joint.defense);
-            return Mathf.Max(0.01f, healthFactor * sizeFactor * JointBreakTorqueScale * JointStrengthMultiplier);
+            joint.defense = maxDefense;
+            joint.forceThreshold = maxDefense <= 0f ? 0f : thresholdCoefficient * maxDefense / (maxDefense + 50f);
+            joint.maxHealth = healthCoefficient * (pieceAHealth + pieceBHealth);
+            joint.currentHealth = joint.maxHealth;
+            joint.lastForce = 0f;
         }
 
         private RectTransform CreateSimPieceRect(AnchorPiece source)
@@ -879,8 +1114,8 @@ namespace BrokenAnchor.Simulation
 
             seabedMaterial = new PhysicsMaterial2D("SimulationSeabed")
             {
-                friction = 0.82f,
-                bounciness = 0.02f
+                friction = Mathf.Max(0f, globalConfig.seabedFriction),
+                bounciness = Mathf.Max(0f, globalConfig.seabedBounciness)
             };
 
             pieceMaterial = new PhysicsMaterial2D("SimulationPiece")
@@ -895,6 +1130,7 @@ namespace BrokenAnchor.Simulation
             ClearSeabedSegments();
             EnsurePhysicsRoot();
             EnsureSeabedFill();
+            EnsureSeabedSurfaceCollider();
 
             var bounds = GetVisibleWorldBounds();
             seabedNoiseSeed = UnityEngine.Random.Range(0f, 10000f);
@@ -908,12 +1144,12 @@ namespace BrokenAnchor.Simulation
             }
 
             RefreshSeabedFill();
+            RefreshSeabedSurfaceCollider();
         }
 
         private void UpdateSeabedTerrain(float deltaTime)
         {
-            var ropeTieSpeed = GetAnchorHorizontalSpeedPixels();
-            var scrollSpeed = Mathf.Abs(ropeTieSpeed) < 0.01f ? 8f : ropeTieSpeed;
+            var scrollSpeed = shipVelocity * AnchorSpeedPixelsPerMeter;
             var dx = scrollSpeed * deltaTime;
             seabedSampleOffsetX += dx;
             for (var i = seabedSegments.Count - 1; i >= 0; i--)
@@ -921,8 +1157,6 @@ namespace BrokenAnchor.Simulation
                 var segment = seabedSegments[i];
                 segment.start.x -= dx;
                 segment.end.x -= dx;
-                UpdateSeabedSegment(segment);
-
                 if (segment.end.x < GetVisibleWorldBounds().xMin - SeabedDespawnPadding)
                 {
                     RemoveSeabedSegmentAt(i);
@@ -937,6 +1171,7 @@ namespace BrokenAnchor.Simulation
 
             EnsureSeabedCoverage();
             RefreshSeabedFill();
+            RefreshSeabedSurfaceCollider();
         }
 
         private void EnsureSeabedCoverage()
@@ -1008,35 +1243,53 @@ namespace BrokenAnchor.Simulation
             var start = new Vector2(startX, Mathf.Clamp(targetStartY, SeabedMinY, SeabedMaxY));
             var end = new Vector2(startX + SeabedSegmentLength, Mathf.Clamp(targetEndY, SeabedMinY, SeabedMaxY));
 
-            var segmentObject = new GameObject("PhysicsSeabedSegment");
-            segmentObject.transform.SetParent(physicsRoot.transform, false);
-            physicsObjects.Add(segmentObject);
-
-            var collider = segmentObject.AddComponent<EdgeCollider2D>();
-            collider.edgeRadius = SeabedColliderRadius;
-            collider.sharedMaterial = seabedMaterial;
-
             var segment = new SeabedSegment
             {
-                collider = collider,
                 start = start,
                 end = end
             };
 
             seabedSegments.Add(segment);
-            UpdateSeabedSegment(segment);
         }
 
-        private void UpdateSeabedSegment(SeabedSegment segment)
+        private void EnsureSeabedSurfaceCollider()
         {
-            if (segment.collider != null)
+            if (seabedSurfaceCollider != null)
             {
-                segment.collider.points = new[]
-                {
-                    ToPhysicsPosition(segment.start),
-                    ToPhysicsPosition(segment.end)
-                };
+                return;
             }
+
+            var colliderObject = new GameObject("SimulationSeabedSurface");
+            colliderObject.transform.SetParent(physicsRoot.transform, false);
+            physicsObjects.Add(colliderObject);
+
+            seabedSurfaceCollider = colliderObject.AddComponent<EdgeCollider2D>();
+            seabedSurfaceCollider.edgeRadius = SeabedColliderRadius;
+            seabedSurfaceCollider.sharedMaterial = seabedMaterial;
+        }
+
+        private void RefreshSeabedSurfaceCollider()
+        {
+            if (seabedSurfaceCollider == null)
+            {
+                return;
+            }
+
+            seabedSegments.Sort((a, b) => a.start.x.CompareTo(b.start.x));
+            if (seabedSegments.Count == 0)
+            {
+                seabedSurfaceCollider.points = Array.Empty<Vector2>();
+                return;
+            }
+
+            var points = new Vector2[seabedSegments.Count + 1];
+            points[0] = ToPhysicsPosition(seabedSegments[0].start);
+            for (var i = 0; i < seabedSegments.Count; i++)
+            {
+                points[i + 1] = ToPhysicsPosition(seabedSegments[i].end);
+            }
+
+            seabedSurfaceCollider.points = points;
         }
 
         private void EnsureSeabedFill()
@@ -1163,11 +1416,6 @@ namespace BrokenAnchor.Simulation
                 water.anchoredPosition = new Vector2(0f, cameraOffsetY);
             }
 
-            for (var i = 0; i < seabedSegments.Count; i++)
-            {
-                UpdateSeabedSegment(seabedSegments[i]);
-            }
-
             RefreshSeabedFill();
         }
 
@@ -1250,17 +1498,6 @@ namespace BrokenAnchor.Simulation
 
         private void ClearSeabedSegments()
         {
-            for (var i = seabedSegments.Count - 1; i >= 0; i--)
-            {
-                if (seabedSegments[i] != null)
-                {
-                    if (seabedSegments[i].collider != null)
-                    {
-                        Destroy(seabedSegments[i].collider.gameObject);
-                    }
-                }
-            }
-
             seabedSegments.Clear();
             if (seabedFill != null)
             {
@@ -1269,17 +1506,14 @@ namespace BrokenAnchor.Simulation
             }
 
             seabedFillPoints.Clear();
+            if (seabedSurfaceCollider != null)
+            {
+                seabedSurfaceCollider.points = Array.Empty<Vector2>();
+            }
         }
 
         private void RemoveSeabedSegmentAt(int index)
         {
-            var segment = seabedSegments[index];
-            if (segment.collider != null)
-            {
-                physicsObjects.Remove(segment.collider.gameObject);
-                Destroy(segment.collider.gameObject);
-            }
-
             seabedSegments.RemoveAt(index);
         }
 
@@ -1297,6 +1531,7 @@ namespace BrokenAnchor.Simulation
             physicsRoot = null;
             seabedMaterial = null;
             pieceMaterial = null;
+            seabedSurfaceCollider = null;
         }
 
         private void OnDestroy()

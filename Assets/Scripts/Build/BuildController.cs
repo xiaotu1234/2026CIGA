@@ -28,11 +28,14 @@ namespace BrokenAnchor.Build
         private const float PreviewSnapToleranceMultiplier = 2f;
         private const float PreviewMinAttachLengthMultiplier = 0.6f;
         private const float RopeMountMinCoverage = 0.35f;
+        private static readonly Vector2 RopeMountDebugRectSize = new Vector2(132f, 68f);
+        private static readonly Vector2 RopeMountDebugRectOffset = new Vector2(34f, -209f);
 
         private RectTransform dragSurface;
         private RectTransform workspace;
         private RectTransform connectionLayer;
         private RectTransform ropeMountPoint;
+        private RectTransform ropeMountDebugRect;
         private RectTransform materialPile;
         private Text riskText;
         private Text statusText;
@@ -297,7 +300,7 @@ namespace BrokenAnchor.Build
             {
                 result.pieces.Add(pieces[i]);
                 result.totalWeight += pieces[i].Config.weight;
-                result.gripScore += pieces[i].Config.gripCoeff;
+                result.gripScore += pieces[i].Config.frictionCoeff;
                 result.dragScore += pieces[i].Config.dragCoeff;
             }
 
@@ -707,8 +710,10 @@ namespace BrokenAnchor.Build
 
         private Rect GetRopeMountRect()
         {
+            EnsureRopeMountDebugRect();
+            var rectSource = ropeMountDebugRect != null ? ropeMountDebugRect : ropeMountPoint;
             var corners = new Vector3[4];
-            ropeMountPoint.GetWorldCorners(corners);
+            rectSource.GetWorldCorners(corners);
             var min = new Vector2(float.MaxValue, float.MaxValue);
             var max = new Vector2(float.MinValue, float.MinValue);
             for (var i = 0; i < corners.Length; i++)
@@ -740,6 +745,8 @@ namespace BrokenAnchor.Build
                 return;
             }
 
+            EnsureRopeMountDebugRect();
+
             var image = ropeMountPoint.GetComponent<Image>();
             if (image != null)
             {
@@ -747,6 +754,36 @@ namespace BrokenAnchor.Build
                     ? new Color(0.92f, 0.68f, 0.28f, 0.75f)
                     : new Color(0.45f, 0.98f, 0.72f, 0.85f);
             }
+        }
+
+        private void EnsureRopeMountDebugRect()
+        {
+            if (ropeMountDebugRect == null)
+            {
+                var existing = ropeMountPoint.Find("RopeMountDebugRect");
+                ropeMountDebugRect = existing as RectTransform;
+            }
+
+            if (ropeMountDebugRect == null)
+            {
+                var debugGo = new GameObject("RopeMountDebugRect", typeof(RectTransform));
+                debugGo.transform.SetParent(ropeMountPoint, false);
+                ropeMountDebugRect = debugGo.GetComponent<RectTransform>();
+
+                var image = debugGo.AddComponent<Image>();
+                image.color = new Color(0.12f, 0.95f, 1f, 0.08f);
+                image.raycastTarget = false;
+
+                var outline = debugGo.AddComponent<Outline>();
+                outline.effectColor = new Color(0.1f, 0.95f, 1f, 0.95f);
+                outline.effectDistance = new Vector2(3f, -3f);
+            }
+
+            ropeMountDebugRect.anchorMin = new Vector2(0.5f, 0.5f);
+            ropeMountDebugRect.anchorMax = new Vector2(0.5f, 0.5f);
+            ropeMountDebugRect.anchoredPosition = RopeMountDebugRectOffset;
+            ropeMountDebugRect.sizeDelta = RopeMountDebugRectSize;
+            ropeMountDebugRect.SetAsLastSibling();
         }
 
         private Vector2 GetPilePosition(int index)

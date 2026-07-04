@@ -16,6 +16,7 @@ namespace BrokenAnchor.UI
         private RectTransform rope;
         private Text stageText;
         private Text metricText;
+        private Text jointDebugText;
         private Slider progress;
 
         public static SimulationView Create(Transform parent)
@@ -58,6 +59,14 @@ namespace BrokenAnchor.UI
             view.metricText.rectTransform.offsetMin = Vector2.zero;
             view.metricText.rectTransform.offsetMax = Vector2.zero;
 
+            view.jointDebugText = UIBuilder.CreateText(side, "JointDebugText", "", 14, new Color(1f, 0.9f, 0.62f), TextAnchor.UpperLeft);
+            view.jointDebugText.rectTransform.anchorMin = new Vector2(0.1f, 0.05f);
+            view.jointDebugText.rectTransform.anchorMax = new Vector2(0.9f, 0.3f);
+            view.jointDebugText.rectTransform.offsetMin = Vector2.zero;
+            view.jointDebugText.rectTransform.offsetMax = Vector2.zero;
+            view.jointDebugText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            view.jointDebugText.verticalOverflow = VerticalWrapMode.Truncate;
+
             var progressLabel = UIBuilder.CreateText(root, "ShipDangerProgressLabel", "\u8ddd\u79bb\u5371\u9669\u533a", 18, new Color(0.92f, 0.96f, 0.94f), TextAnchor.MiddleRight);
             progressLabel.rectTransform.anchorMin = new Vector2(0.34f, 0.915f);
             progressLabel.rectTransform.anchorMax = new Vector2(0.47f, 0.965f);
@@ -67,7 +76,7 @@ namespace BrokenAnchor.UI
             view.progress = CreateProgressSlider(root, "ShipDangerProgress", new Vector2(0.48f, 0.925f), new Vector2(0.72f, 0.955f));
 
             view.controller = root.gameObject.AddComponent<SimulationController>();
-            view.controller.Initialize(view.playArea, view.ship, view.anchor, view.rope, view.stageText, view.metricText, view.progress, null);
+            view.controller.Initialize(view.playArea, view.ship, view.anchor, view.rope, view.stageText, view.metricText, view.jointDebugText, view.progress, null);
             return view;
         }
 
@@ -76,13 +85,8 @@ namespace BrokenAnchor.UI
             ResolveReferences();
             ClearAnchorChildren();
 
-            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, progress, onFinished);
+            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, jointDebugText, progress, onFinished);
             controller.StartSimulation(build, level);
-        }
-
-        public void Run(AnchorBuildResult build, LevelConfig level, Action<SimulationResult> onFinished, object ignoredMode)
-        {
-            Run(build, level, onFinished);
         }
 
         private void ClearAnchorChildren()
@@ -110,8 +114,38 @@ namespace BrokenAnchor.UI
             rope = rope != null ? rope : FindChildComponent<RectTransform>("Rope");
             stageText = stageText != null ? stageText : FindChildComponent<Text>("StageText");
             metricText = metricText != null ? metricText : FindChildComponent<Text>("MetricText");
+            jointDebugText = jointDebugText != null ? jointDebugText : FindChildComponent<Text>("JointDebugText");
+            EnsureJointDebugText();
             progress = progress != null ? progress : FindChildComponent<Slider>("DangerProgress");
             progress = progress != null ? progress : FindChildComponent<Slider>("ShipDangerProgressBg");
+        }
+
+        private void EnsureJointDebugText()
+        {
+            if (jointDebugText != null)
+            {
+                ConfigureJointDebugText(jointDebugText);
+                return;
+            }
+
+            var metricsPanel = FindChildComponent<RectTransform>("MetricsPanel");
+            if (metricsPanel == null)
+            {
+                return;
+            }
+
+            jointDebugText = UIBuilder.CreateText(metricsPanel, "JointDebugText", "", 14, new Color(1f, 0.9f, 0.62f), TextAnchor.UpperLeft);
+            ConfigureJointDebugText(jointDebugText);
+        }
+
+        private static void ConfigureJointDebugText(Text text)
+        {
+            text.rectTransform.anchorMin = new Vector2(0.1f, 0.05f);
+            text.rectTransform.anchorMax = new Vector2(0.9f, 0.3f);
+            text.rectTransform.offsetMin = Vector2.zero;
+            text.rectTransform.offsetMax = Vector2.zero;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
         }
 
         private T FindChildComponent<T>(string childName) where T : Component
@@ -129,7 +163,7 @@ namespace BrokenAnchor.UI
 
         private void InitializeController(Action<SimulationResult> onFinished)
         {
-            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, progress, onFinished);
+            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, jointDebugText, progress, onFinished);
         }
 
         private static void CreateBand(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Color color)

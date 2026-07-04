@@ -1,0 +1,991 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>断锚求生 - 受力验证 HTML 原型</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101418;
+      --panel: #171d22;
+      --panel-2: #20272e;
+      --line: #34414b;
+      --text: #e8edf0;
+      --muted: #96a5ad;
+      --cyan: #49c7d9;
+      --green: #65d282;
+      --yellow: #f0c85a;
+      --red: #ef6b6b;
+      --blue: #6aa8ff;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body {
+      font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(720px, 1fr) 360px;
+      grid-template-rows: 58px 1fr;
+      height: 100vh;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #11171c;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 700;
+      min-width: 270px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 94px;
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .pill strong { color: var(--text); font-size: 14px; }
+
+    main {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(#23333c 0%, #173746 38%, #10252f 70%, #273027 100%);
+    }
+
+    #game {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    .toast {
+      position: absolute;
+      left: 18px;
+      top: 16px;
+      max-width: 480px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(8, 13, 18, .78);
+      border-radius: 6px;
+      color: var(--text);
+      line-height: 1.45;
+      pointer-events: none;
+    }
+
+    aside {
+      overflow: auto;
+      border-left: 1px solid var(--line);
+      background: var(--panel);
+      padding: 12px;
+    }
+
+    section {
+      padding: 12px;
+      margin-bottom: 12px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      border-radius: 6px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #ffffff;
+    }
+
+    p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    button {
+      min-height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #26313a;
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+    }
+    button:hover { border-color: var(--cyan); }
+    button.on { background: #164655; border-color: var(--cyan); }
+    button.primary { background: #1d5a3a; border-color: #2f9c68; }
+    button.warn { background: #5d4520; border-color: #b8822d; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px;
+      margin-bottom: 8px;
+      background: #151b20;
+    }
+    .card h3 {
+      margin: 0 0 6px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 14px;
+    }
+    .card small { color: var(--muted); line-height: 1.4; display: block; }
+
+    .meter {
+      height: 8px;
+      border-radius: 99px;
+      background: #0d1115;
+      overflow: hidden;
+      margin-top: 7px;
+    }
+    .meter > i { display: block; height: 100%; background: var(--green); width: 0%; }
+
+    .log {
+      height: 150px;
+      overflow: auto;
+      padding: 8px;
+      border: 1px solid #2b3640;
+      border-radius: 6px;
+      background: #0e1317;
+      font-size: 12px;
+      color: #c8d2d7;
+      line-height: 1.55;
+    }
+    .log div { border-bottom: 1px solid rgba(255,255,255,.06); padding: 3px 0; }
+
+    .bond-list {
+      display: grid;
+      gap: 7px;
+      max-height: 170px;
+      overflow: auto;
+    }
+
+    .bond-item {
+      padding: 7px;
+      border: 1px solid #2c3841;
+      border-radius: 6px;
+      background: #10161b;
+      font-size: 12px;
+      color: #cdd6da;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: #11181e;
+      color: #d8e0e4;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>断锚求生：贴边拼接受力验证</h1>
+      <span class="pill">阶段 <strong id="stageText">开始</strong></span>
+      <span class="pill">船重 <strong id="shipWeightText">0</strong></span>
+      <span class="pill">剩余 <strong id="timeText">0.0</strong></span>
+      <span class="pill">船位 <strong id="boatText">安全</strong></span>
+      <span class="pill">连接 <strong id="bondText">0</strong></span>
+    </header>
+
+    <main>
+      <canvas id="game"></canvas>
+      <div class="toast" id="toast"></div>
+    </main>
+
+    <aside>
+      <section>
+        <h2>流程</h2>
+        <div class="row">
+          <button id="newRoundBtn">新一局</button>
+          <button id="buildBtn" class="on">拼装</button>
+          <button id="dropBtn" class="primary">下锚验证</button>
+          <button id="resetViewBtn">复位视图</button>
+        </div>
+        <p>拖动物品拼船锚。边框靠近时会自动生成“贴边连接”，连接会受材质和贴边长度影响。</p>
+      </section>
+
+      <section>
+        <h2>操作</h2>
+        <p>
+          <span class="kbd">拖拽</span> 移动物品　
+          <span class="kbd">Q/E</span> 旋转选中物　
+          <span class="kbd">H</span> 切换挂绳点　
+          <span class="kbd">下锚验证</span> 开始三阶段受力
+        </p>
+        <div class="row">
+          <button id="autoSnapBtn">贴边吸附</button>
+          <button id="clearBondsBtn" class="warn">重算连接</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>本局材料</h2>
+        <div id="materialList"></div>
+      </section>
+
+      <section>
+        <h2>连接状态</h2>
+        <div class="bond-list" id="bondList"></div>
+      </section>
+
+      <section>
+        <h2>事件</h2>
+        <div class="log" id="log"></div>
+      </section>
+    </aside>
+  </div>
+
+  <script>
+  (() => {
+    "use strict";
+
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const ui = {
+      stage: document.getElementById("stageText"),
+      shipWeight: document.getElementById("shipWeightText"),
+      time: document.getElementById("timeText"),
+      boat: document.getElementById("boatText"),
+      bond: document.getElementById("bondText"),
+      toast: document.getElementById("toast"),
+      log: document.getElementById("log"),
+      materialList: document.getElementById("materialList"),
+      bondList: document.getElementById("bondList")
+    };
+
+    const materials = [
+      { id: "iron", name: "废铁块", color: "#8f9aa3", mass: 12, adhesion: 0.55, toughness: 0.9, waterDrag: 0.35, floorGrip: 0.55 },
+      { id: "wood", name: "木梁", color: "#b98752", mass: 5, adhesion: 0.42, toughness: 0.45, waterDrag: 0.5, floorGrip: 0.35 },
+      { id: "rubber", name: "轮胎胶", color: "#343b40", mass: 6, adhesion: 0.85, toughness: 1.35, waterDrag: 0.55, floorGrip: 0.8 },
+      { id: "cloth", name: "阻力帆布", color: "#54c58c", mass: 3, adhesion: 0.5, toughness: 0.35, waterDrag: 1.5, floorGrip: 0.2 },
+      { id: "hook", name: "钩爪", color: "#c0cad0", mass: 8, adhesion: 0.62, toughness: 0.85, waterDrag: 0.3, floorGrip: 1.4 }
+    ];
+
+    const shapeDefs = [
+      { shape: "rect", w: 112, h: 34 },
+      { shape: "rect", w: 78, h: 50 },
+      { shape: "tri", w: 72, h: 74 },
+      { shape: "hook", w: 72, h: 82 },
+      { shape: "bar", w: 132, h: 22 }
+    ];
+
+    const state = {
+      dpr: 1,
+      w: 1000,
+      h: 700,
+      stage: "build",
+      pieces: [],
+      bonds: [],
+      selected: null,
+      dragging: null,
+      dragLocal: { x: 0, y: 0 },
+      ropePieceIndex: 0,
+      shipWeight: 18,
+      buildLimit: 60,
+      buildTime: 60,
+      simTime: 0,
+      phaseTime: 0,
+      phase: "build",
+      boat: { x: 560, y: 110, vx: 0 },
+      ropeAnchor: { x: 506, y: 145 },
+      dangerX: 720,
+      last: performance.now(),
+      logOnce: new Set(),
+      result: null
+    };
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function choice(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function log(msg) {
+      const line = document.createElement("div");
+      line.textContent = msg;
+      ui.log.prepend(line);
+    }
+
+    function setToast(html) {
+      ui.toast.innerHTML = html;
+    }
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      state.dpr = window.devicePixelRatio || 1;
+      state.w = Math.max(720, rect.width);
+      state.h = Math.max(480, rect.height);
+      canvas.width = Math.floor(state.w * state.dpr);
+      canvas.height = Math.floor(state.h * state.dpr);
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      state.dangerX = dangerLimitX();
+    }
+
+    function initialBoatX() {
+      return Math.min(state.w - 210, Math.max(500, state.w * 0.64));
+    }
+
+    function dangerLimitX() {
+      return Math.min(state.w - 90, Math.max(initialBoatX() + 130, state.w - 150));
+    }
+
+    function resetBoat() {
+      state.boat = { x: initialBoatX(), y: 110, vx: 0 };
+      state.dangerX = dangerLimitX();
+    }
+
+    function polygonFor(piece) {
+      const w = piece.w, h = piece.h;
+      if (piece.shape === "tri") return [[0, -h/2], [w/2, h/2], [-w/2, h/2]];
+      if (piece.shape === "hook") return [[-w*.42,-h*.35], [w*.15,-h*.45], [w*.3,-h*.12], [w*.08,h*.1], [w*.4,h*.38], [w*.05,h*.48], [-w*.45,h*.12]];
+      return [[-w/2,-h/2], [w/2,-h/2], [w/2,h/2], [-w/2,h/2]];
+    }
+
+    function rotPoint(x, y, r) {
+      const c = Math.cos(r), s = Math.sin(r);
+      return { x: x*c - y*s, y: x*s + y*c };
+    }
+
+    function toWorld(piece, p) {
+      const q = rotPoint(p[0], p[1], piece.r);
+      return { x: piece.x + q.x, y: piece.y + q.y };
+    }
+
+    function worldPoly(piece) {
+      return polygonFor(piece).map(p => toWorld(piece, p));
+    }
+
+    function edges(poly) {
+      const out = [];
+      for (let i = 0; i < poly.length; i++) {
+        const a = poly[i], b = poly[(i + 1) % poly.length];
+        out.push({ a, b, vx: b.x-a.x, vy: b.y-a.y, len: Math.hypot(b.x-a.x, b.y-a.y) });
+      }
+      return out.filter(e => e.len > 0.001);
+    }
+
+    function pointInPoly(pt, poly) {
+      let inside = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const a = poly[i], b = poly[j];
+        if (((a.y > pt.y) !== (b.y > pt.y)) && pt.x < (b.x-a.x) * (pt.y-a.y) / (b.y-a.y) + a.x) inside = !inside;
+      }
+      return inside;
+    }
+
+    function closestOnSegment(p, a, b) {
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const t = Math.max(0, Math.min(1, ((p.x-a.x)*dx + (p.y-a.y)*dy) / Math.max(1, dx*dx + dy*dy)));
+      return { x: a.x + dx*t, y: a.y + dy*t, t };
+    }
+
+    function edgeContact(pa, pb) {
+      const ea = edges(pa), eb = edges(pb);
+      let best = { fit: 0, length: 0, dist: 999, a: null, b: null };
+      for (const a of ea) {
+        for (const b of eb) {
+          const da = { x: a.vx/a.len, y: a.vy/a.len };
+          const db = { x: b.vx/b.len, y: b.vy/b.len };
+          const parallel = Math.abs(da.x*db.x + da.y*db.y);
+          if (parallel < 0.88) continue;
+          const midA = { x: (a.a.x+a.b.x)/2, y: (a.a.y+a.b.y)/2 };
+          const midB = { x: (b.a.x+b.b.x)/2, y: (b.a.y+b.b.y)/2 };
+          const c = closestOnSegment(midA, b.a, b.b);
+          const dist = Math.hypot(midA.x-c.x, midA.y-c.y);
+          if (dist > 18) continue;
+
+          const projA0 = 0;
+          const projA1 = a.len;
+          const rel0 = ((b.a.x-a.a.x)*da.x + (b.a.y-a.a.y)*da.y);
+          const rel1 = ((b.b.x-a.a.x)*da.x + (b.b.y-a.a.y)*da.y);
+          const minB = Math.min(rel0, rel1);
+          const maxB = Math.max(rel0, rel1);
+          const overlap = Math.max(0, Math.min(projA1, maxB) - Math.max(projA0, minB));
+          const fit = overlap * (1 - dist / 18);
+          if (fit > best.fit) best = { fit, length: overlap, dist, a, b };
+        }
+      }
+      return best;
+    }
+
+    function pieceRadius(piece) {
+      return Math.hypot(piece.w, piece.h) * 0.58;
+    }
+
+    function hitPiece(x, y) {
+      for (let i = state.pieces.length - 1; i >= 0; i--) {
+        const p = state.pieces[i];
+        if (pointInPoly({ x, y }, worldPoly(p))) return p;
+      }
+      return null;
+    }
+
+    function makePiece(i) {
+      const mat = choice(materials);
+      const shape = choice(shapeDefs);
+      return {
+        uid: "p" + Date.now() + "_" + i + "_" + Math.floor(Math.random()*9999),
+        name: mat.name,
+        matId: mat.id,
+        color: mat.color,
+        mass: mat.mass,
+        adhesion: mat.adhesion,
+        toughness: mat.toughness,
+        waterDrag: mat.waterDrag,
+        floorGrip: mat.floorGrip,
+        shape: shape.shape,
+        w: shape.w,
+        h: shape.h,
+        x: 160 + i * 62,
+        y: 330 + (i % 2) * 74,
+        r: rand(-0.35, 0.35),
+        vx: 0,
+        vy: 0,
+        av: 0,
+        onFloor: false,
+        impulse: 0
+      };
+    }
+
+    function newRound() {
+      state.stage = "build";
+      state.phase = "build";
+      state.pieces = [];
+      state.bonds = [];
+      state.selected = null;
+      state.dragging = null;
+      state.ropePieceIndex = 0;
+      state.shipWeight = Math.round(rand(16, 36));
+      state.buildTime = 60;
+      state.simTime = 0;
+      state.phaseTime = 0;
+      resetBoat();
+      state.result = null;
+      state.logOnce.clear();
+      ui.log.innerHTML = "";
+      const count = 5 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < count; i++) state.pieces.push(makePiece(i));
+      log("新一局：随机船重 " + state.shipWeight + "，材料 " + count + " 件。船在右侧，会被横向力推向更右侧危险区。");
+      setToast("拼装阶段：锚材料在左侧，船在右侧。下锚后船往右漂，左侧船锚通过挂在船左侧的绳子把船往左拽住。");
+      rebuildBonds();
+      renderSide();
+    }
+
+    function bondKey(a, b) {
+      return [a.uid, b.uid].sort().join("|");
+    }
+
+    function rebuildBonds(keepDamage = true) {
+      const old = new Map();
+      for (const b of state.bonds) old.set(b.key, b);
+      const next = [];
+      for (let i = 0; i < state.pieces.length; i++) {
+        for (let j = i + 1; j < state.pieces.length; j++) {
+          const a = state.pieces[i], b = state.pieces[j];
+          if (Math.hypot(a.x-b.x, a.y-b.y) > pieceRadius(a) + pieceRadius(b) + 28) continue;
+          const contact = edgeContact(worldPoly(a), worldPoly(b));
+          if (contact.length < 18 || contact.fit < 8) continue;
+          const key = bondKey(a, b);
+          const prev = old.get(key);
+          const base = contact.length * 0.75 * (a.adhesion + b.adhesion) * 0.5 * (a.toughness + b.toughness);
+          next.push({
+            key,
+            a,
+            b,
+            rest: Math.hypot(a.x-b.x, a.y-b.y),
+            fitLength: contact.length,
+            strength: Math.max(10, base),
+            damage: keepDamage && prev ? prev.damage : 0,
+            broken: false,
+            tension: 0,
+            shear: 0
+          });
+        }
+      }
+      state.bonds = next;
+    }
+
+    function autoSnap() {
+      let moved = false;
+      for (let pass = 0; pass < 8; pass++) {
+        rebuildBonds(false);
+        for (const b of state.bonds) {
+          if (b.fitLength > 22) continue;
+          const dx = b.b.x - b.a.x, dy = b.b.y - b.a.y;
+          const d = Math.max(1, Math.hypot(dx, dy));
+          const target = b.rest - 5;
+          const corr = (d - target) * 0.08;
+          b.b.x -= dx / d * corr;
+          b.b.y -= dy / d * corr;
+          moved = true;
+        }
+      }
+      rebuildBonds(false);
+      if (moved) log("执行贴边吸附：把接近的边框拉到容错范围内。");
+    }
+
+    function startDrop() {
+      rebuildBonds(true);
+      const connected = connectedCount();
+      if (state.bonds.length === 0 || connected < state.pieces.length) {
+        setToast("提示：当前不是所有材料都连在一起，可以下锚，但结构会很不稳定。");
+      }
+      state.stage = "sim";
+      state.phase = "impact";
+      state.simTime = 0;
+      state.phaseTime = 0;
+      for (const p of state.pieces) {
+        p.vx = rand(-15, 15);
+        p.vy = rand(40, 80);
+        p.av = rand(-0.5, 0.5);
+        p.onFloor = false;
+      }
+      log("下锚：进入入水冲击阶段。");
+    }
+
+    function connectedCount() {
+      if (!state.pieces.length) return 0;
+      const seen = new Set([state.pieces[0].uid]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const b of state.bonds) {
+          if (b.broken) continue;
+          if (seen.has(b.a.uid) && !seen.has(b.b.uid)) { seen.add(b.b.uid); changed = true; }
+          if (seen.has(b.b.uid) && !seen.has(b.a.uid)) { seen.add(b.a.uid); changed = true; }
+        }
+      }
+      return seen.size;
+    }
+
+    function ropePiece() {
+      return state.pieces[Math.min(state.ropePieceIndex, state.pieces.length - 1)] || null;
+    }
+
+    function applyForce(p, fx, fy, dt, px = p.x, py = p.y) {
+      p.vx += fx / p.mass * dt;
+      p.vy += fy / p.mass * dt;
+      const torque = ((px - p.x) * fy - (py - p.y) * fx) * 0.0009;
+      p.av += torque / Math.max(1, p.mass) * dt;
+    }
+
+    function updateSim(dt) {
+      state.simTime += dt;
+      state.phaseTime += dt;
+
+      if (state.phase === "impact" && state.phaseTime > 1.2) {
+        state.phase = "sink";
+        state.phaseTime = 0;
+        log("阶段切换：下沉，水流横推、重力、船锚绳开始持续作用。");
+      }
+      if (state.phase === "sink" && state.pieces.some(p => p.y > floorY() - 16)) {
+        state.phase = "floor";
+        state.phaseTime = 0;
+        log("阶段切换：触底，水流减弱，海底支撑和摩擦开始生效。");
+      }
+
+      const floor = floorY();
+      const current = state.phase === "floor" ? 16 : 48;
+      for (const p of state.pieces) {
+        const gravity = 76 * p.mass;
+        const buoyancy = p.matId === "wood" || p.matId === "cloth" ? 18 * p.mass : 7 * p.mass;
+        applyForce(p, current * p.waterDrag, gravity - buoyancy, dt);
+
+        const drag = 0.025 + p.waterDrag * 0.01;
+        p.vx *= Math.max(0, 1 - drag);
+        p.vy *= Math.max(0, 1 - drag * 0.7);
+        p.av *= 0.992;
+
+        if (state.phase === "impact") {
+          const bottom = p.y + pieceRadius(p) * 0.45;
+          const hit = Math.max(0, bottom - 260);
+          if (hit > 0) {
+            const impact = -680 * (1 - state.phaseTime / 1.2) * Math.min(1, hit / 60);
+            applyForce(p, 0, impact, dt, p.x, p.y + p.h * 0.35);
+            p.impulse = Math.max(p.impulse, Math.abs(impact) / 680);
+          }
+        }
+      }
+
+      const rp = ropePiece();
+      if (rp) {
+        const anchor = { x: rp.x, y: rp.y - pieceRadius(rp) * 0.5 };
+        const dx = state.ropeAnchor.x - anchor.x;
+        const dy = state.ropeAnchor.y - anchor.y;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const pull = 58 + state.shipWeight * 3.2 + Math.max(0, state.boat.x - 125) * 0.28;
+        applyForce(rp, dx / dist * pull, dy / dist * pull, dt, anchor.x, anchor.y);
+      }
+
+      solveBonds(dt);
+
+      for (const p of state.pieces) {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.r += p.av * dt;
+        if (p.y + pieceRadius(p) > floor) {
+          p.y = floor - pieceRadius(p);
+          p.vy *= -0.14;
+          p.vx *= Math.max(0.2, 1 - p.floorGrip * 0.045);
+          p.av *= 0.82;
+          p.onFloor = true;
+        }
+      }
+
+      updateBoat(dt);
+      if (!state.result && (state.boat.x > state.dangerX || state.simTime > 24)) finishResult();
+    }
+
+    function solveBonds(dt) {
+      for (const b of state.bonds) {
+        if (b.broken) continue;
+        const dx = b.b.x - b.a.x;
+        const dy = b.b.y - b.a.y;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const nx = dx / dist, ny = dy / dist;
+        const stretch = dist - b.rest;
+        const relV = (b.b.vx-b.a.vx)*nx + (b.b.vy-b.a.vy)*ny;
+        const force = stretch * 5.2 + relV * 1.5;
+        const absForce = Math.abs(force);
+        const allowedMove = 8 + b.fitLength * 0.18;
+        const soft = Math.min(1, Math.max(0, Math.abs(stretch) / allowedMove));
+        const corr = Math.max(-16, Math.min(16, stretch * 0.32 * (1 - b.damage * 0.65)));
+        b.a.x += nx * corr * 0.5;
+        b.a.y += ny * corr * 0.5;
+        b.b.x -= nx * corr * 0.5;
+        b.b.y -= ny * corr * 0.5;
+
+        b.tension = absForce;
+        b.shear = soft;
+        const overload = Math.max(0, absForce - b.strength * (1 - b.damage * 0.55));
+        b.damage += (overload * 0.0016 + soft * 0.018) * dt;
+
+        if (state.phase === "impact") b.damage += 0.006 * dt;
+        if (b.damage > 1) {
+          b.broken = true;
+          log("连接断开：" + b.a.name + " - " + b.b.name + "，贴边面积被拉没了。");
+        }
+      }
+      state.bonds = state.bonds.filter(b => !b.broken);
+    }
+
+    function updateBoat(dt) {
+      const wind = 18 + state.shipWeight * 0.48;
+      let anchorHold = 0;
+      for (const p of state.pieces) {
+        if (!p.onFloor) continue;
+        anchorHold += p.mass * p.floorGrip * (state.phase === "floor" ? 2.1 : 0.6);
+      }
+      anchorHold += state.bonds.reduce((sum, b) => sum + Math.max(0, 1 - b.damage) * b.strength * 0.025, 0);
+      const pull = Math.min(wind * 0.92, anchorHold);
+      state.boat.vx += (wind - pull) / Math.max(8, state.shipWeight) * dt;
+      state.boat.vx *= 0.985;
+      state.boat.x += state.boat.vx * dt * 18;
+    }
+
+    function finishResult() {
+      const success = state.boat.x <= state.dangerX;
+      const intact = state.bonds.length;
+      const floorMass = state.pieces.filter(p => p.onFloor).reduce((s, p) => s + p.mass, 0);
+      state.result = success ? "success" : "fail";
+      state.stage = "result";
+      log(success ? "结算：成功，船没有进入危险区。" : "结算：失败，船被横向力拖进危险区。");
+      setToast(
+        "<b>" + (success ? "成功稳住" : "失败漂走") + "</b><br>" +
+        "触底质量：" + floorMass.toFixed(1) +
+        "　剩余连接：" + intact +
+        "　船位：" + Math.round(state.boat.x) + " / " + state.dangerX +
+        "<br>这版原型验证的是：贴边越长、材质越粘、触底摩擦越大，绳子越能拉住船。"
+      );
+    }
+
+    function floorY() {
+      return state.h - 64;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, state.w, state.h);
+      drawWorld();
+      drawBoat();
+      for (const b of state.bonds) drawBond(b);
+      for (const p of state.pieces) drawPiece(p);
+      drawRope();
+      drawHudMarks();
+    }
+
+    function drawWorld() {
+      const waterY = 160;
+      ctx.fillStyle = "rgba(255,255,255,.14)";
+      ctx.fillRect(0, waterY, state.w, 2);
+      ctx.fillStyle = "rgba(80,190,220,.16)";
+      for (let i = 0; i < 8; i++) {
+        const x = (performance.now() * 0.03 + i * 170) % (state.w + 220) - 160;
+        ctx.fillRect(x, waterY + 38 + i * 35, 90, 2);
+      }
+
+      ctx.fillStyle = "#3b4131";
+      ctx.fillRect(0, floorY(), state.w, state.h - floorY());
+      ctx.strokeStyle = "rgba(255,255,255,.12)";
+      ctx.beginPath();
+      for (let x = 0; x < state.w; x += 30) {
+        const y = floorY() + Math.sin(x * 0.035) * 6;
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(239,107,107,.18)";
+      ctx.fillRect(state.dangerX, 0, state.w - state.dangerX, 150);
+      ctx.fillStyle = "#ef9b9b";
+      ctx.font = "13px Microsoft YaHei";
+      ctx.fillText("危险区", state.dangerX + 12, 32);
+    }
+
+    function drawBoat() {
+      const x = state.boat.x, y = state.boat.y;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = "#7d5137";
+      ctx.beginPath();
+      ctx.moveTo(-62, -18);
+      ctx.lineTo(62, -18);
+      ctx.lineTo(42, 18);
+      ctx.lineTo(-46, 18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#dfc38e";
+      ctx.fillRect(-22, -42, 42, 24);
+      ctx.restore();
+      state.ropeAnchor.x = x - 54;
+      state.ropeAnchor.y = y + 4;
+    }
+
+    function drawRope() {
+      const p = ropePiece();
+      if (!p) return;
+      const top = { x: p.x, y: p.y - pieceRadius(p) * 0.5 };
+      ctx.strokeStyle = "#dcc070";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(state.ropeAnchor.x, state.ropeAnchor.y);
+      ctx.lineTo(top.x, top.y);
+      ctx.stroke();
+      ctx.fillStyle = "#fff1a6";
+      ctx.beginPath();
+      ctx.arc(top.x, top.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawBond(b) {
+      const damage = Math.min(1, b.damage);
+      ctx.strokeStyle = damage > .72 ? "#ef6b6b" : damage > .38 ? "#f0c85a" : "#65d282";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(b.a.x, b.a.y);
+      ctx.lineTo(b.b.x, b.b.y);
+      ctx.stroke();
+    }
+
+    function drawPiece(p) {
+      const poly = worldPoly(p);
+      ctx.save();
+      ctx.fillStyle = p.color;
+      ctx.strokeStyle = state.selected === p ? "#ffffff" : "rgba(255,255,255,.55)";
+      ctx.lineWidth = state.selected === p ? 3 : 1.5;
+      ctx.beginPath();
+      poly.forEach((pt, i) => i ? ctx.lineTo(pt.x, pt.y) : ctx.moveTo(pt.x, pt.y));
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      if (p.impulse > 0.02) {
+        ctx.strokeStyle = "rgba(139,220,255,.45)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y + p.h * .25, 18 + p.impulse * 22, 0, Math.PI * 2);
+        ctx.stroke();
+        p.impulse *= 0.93;
+      }
+
+      ctx.fillStyle = "#081016";
+      ctx.font = "12px Microsoft YaHei";
+      ctx.textAlign = "center";
+      ctx.fillText(p.name, p.x, p.y + 4);
+      if (ropePiece() === p) {
+        ctx.fillStyle = "#fff1a6";
+        ctx.fillText("挂绳点", p.x, p.y - pieceRadius(p) - 8);
+      }
+      ctx.restore();
+    }
+
+    function drawHudMarks() {
+      if (state.stage !== "build") return;
+      for (let i = 0; i < state.pieces.length; i++) {
+        for (let j = i + 1; j < state.pieces.length; j++) {
+          const a = state.pieces[i], b = state.pieces[j];
+          const c = edgeContact(worldPoly(a), worldPoly(b));
+          if (c.fit > 4 && c.length < 18) {
+            ctx.strokeStyle = "rgba(240,200,90,.65)";
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+      }
+    }
+
+    function renderSide() {
+      ui.stage.textContent = state.stage === "build" ? "拼装" : state.phase === "impact" ? "入水" : state.phase === "sink" ? "下沉" : state.phase === "floor" ? "触底" : "结算";
+      ui.shipWeight.textContent = state.shipWeight;
+      ui.time.textContent = state.stage === "build" ? state.buildTime.toFixed(1) : state.simTime.toFixed(1);
+      ui.boat.textContent = state.boat.x > state.dangerX ? "危险" : Math.round(state.boat.x);
+      ui.boat.style.color = state.boat.x > state.dangerX ? "var(--red)" : "var(--green)";
+      ui.bond.textContent = state.bonds.length + "/" + Math.max(0, state.pieces.length - 1);
+
+      ui.materialList.innerHTML = state.pieces.map((p, i) => (
+        `<div class="card"><h3>${i === state.ropePieceIndex ? "绳 " : ""}${p.name}<span>${p.mass}kg</span></h3>` +
+        `<small>粘合 ${p.adhesion.toFixed(2)} / 韧性 ${p.toughness.toFixed(2)} / 水阻 ${p.waterDrag.toFixed(2)} / 底摩擦 ${p.floorGrip.toFixed(2)}</small></div>`
+      )).join("");
+
+      if (!state.bonds.length) {
+        ui.bondList.innerHTML = "<p>暂无有效贴边连接。把材料边框贴近，会出现连接线。</p>";
+      } else {
+        ui.bondList.innerHTML = state.bonds.map(b => {
+          const pct = Math.max(0, Math.min(100, (1 - b.damage) * 100));
+          const color = pct < 35 ? "var(--red)" : pct < 65 ? "var(--yellow)" : "var(--green)";
+          return `<div class="bond-item">${b.a.name} - ${b.b.name}<br>` +
+            `贴边 ${b.fitLength.toFixed(0)} / 强度 ${b.strength.toFixed(0)} / 拉力 ${b.tension.toFixed(0)}` +
+            `<div class="meter"><i style="width:${pct}%;background:${color}"></i></div></div>`;
+        }).join("");
+      }
+    }
+
+    function tick(now) {
+      const dt = Math.min(0.033, (now - state.last) / 1000);
+      state.last = now;
+      if (state.stage === "build") {
+        state.buildTime = Math.max(0, state.buildTime - dt);
+        rebuildBonds(true);
+        if (state.buildTime <= 0 && !state.logOnce.has("timeup")) {
+          state.logOnce.add("timeup");
+          setToast("拼装时间到，也可以继续微调；正式版这里会强制下锚或给加时惩罚。");
+        }
+      } else if (state.stage === "sim") {
+        updateSim(dt);
+      }
+      draw();
+      renderSide();
+      requestAnimationFrame(tick);
+    }
+
+    function pointerPos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+
+    canvas.addEventListener("pointerdown", e => {
+      if (state.stage !== "build") return;
+      const pos = pointerPos(e);
+      const p = hitPiece(pos.x, pos.y);
+      state.selected = p;
+      if (p) {
+        state.dragging = p;
+        const c = Math.cos(-p.r), s = Math.sin(-p.r);
+        const dx = pos.x - p.x, dy = pos.y - p.y;
+        state.dragLocal = { x: dx*c - dy*s, y: dx*s + dy*c };
+      }
+    });
+
+    canvas.addEventListener("pointermove", e => {
+      if (!state.dragging || state.stage !== "build") return;
+      const pos = pointerPos(e);
+      const p = state.dragging;
+      const q = rotPoint(state.dragLocal.x, state.dragLocal.y, p.r);
+      p.x = pos.x - q.x;
+      p.y = pos.y - q.y;
+    });
+
+    window.addEventListener("pointerup", () => {
+      if (state.dragging) rebuildBonds(true);
+      state.dragging = null;
+    });
+
+    window.addEventListener("keydown", e => {
+      if (e.key.toLowerCase() === "q" && state.selected && state.stage === "build") state.selected.r -= 0.12;
+      if (e.key.toLowerCase() === "e" && state.selected && state.stage === "build") state.selected.r += 0.12;
+      if (e.key.toLowerCase() === "h" && state.pieces.length) {
+        state.ropePieceIndex = (state.ropePieceIndex + 1) % state.pieces.length;
+        log("切换挂绳点：" + ropePiece().name);
+      }
+    });
+
+    document.getElementById("newRoundBtn").onclick = newRound;
+    document.getElementById("buildBtn").onclick = () => {
+      state.stage = "build";
+      state.phase = "build";
+      setToast("回到拼装阶段。");
+    };
+    document.getElementById("dropBtn").onclick = startDrop;
+    document.getElementById("resetViewBtn").onclick = () => {
+      state.pieces.forEach((p, i) => { p.x = 160 + i * 62; p.y = 330 + (i % 2) * 74; p.vx = p.vy = p.av = 0; });
+      resetBoat();
+      state.stage = "build";
+      state.phase = "build";
+      rebuildBonds(false);
+      log("复位视图和材料位置。");
+    };
+    document.getElementById("autoSnapBtn").onclick = autoSnap;
+    document.getElementById("clearBondsBtn").onclick = () => {
+      rebuildBonds(false);
+      log("重算贴边连接。");
+    };
+
+    window.addEventListener("resize", resize);
+    resize();
+    newRound();
+    requestAnimationFrame(tick);
+  })();
+  </script>
+</body>
+</html>
+
+

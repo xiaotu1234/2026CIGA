@@ -13,9 +13,9 @@ namespace BrokenAnchor.Config
     {
         private const string PiecePrefabFolder = "Assets/Prefabs/Pieces";
 
-        public static List<MaterialConfig> LoadMaterialConfigs()
+        public static List<string> LoadPrefabAssetPaths()
         {
-            var materials = new List<MaterialConfig>();
+            var assetPaths = new List<string>();
 
 #if UNITY_EDITOR
             var prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { PiecePrefabFolder });
@@ -23,6 +23,25 @@ namespace BrokenAnchor.Config
             for (var i = 0; i < prefabGuids.Length; i++)
             {
                 var assetPath = AssetDatabase.GUIDToAssetPath(prefabGuids[i]);
+                if (!string.IsNullOrEmpty(assetPath))
+                {
+                    assetPaths.Add(assetPath);
+                }
+            }
+#endif
+
+            return assetPaths;
+        }
+
+        public static List<MaterialConfig> LoadMaterialConfigs()
+        {
+            var materials = new List<MaterialConfig>();
+
+#if UNITY_EDITOR
+            var assetPaths = LoadPrefabAssetPaths();
+            for (var i = 0; i < assetPaths.Count; i++)
+            {
+                var assetPath = assetPaths[i];
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
                 if (prefab == null)
                 {

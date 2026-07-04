@@ -5,13 +5,25 @@ namespace BrokenAnchor.Config
 {
     public static class PrototypeCatalog
     {
+        private const int RoundMaterialCount = 10;
+
         public static LevelConfig CreateLevel()
         {
-            return new LevelConfig();
+            var level = new LevelConfig();
+            ItemConfigLoader.ApplyGlobalsToLevel(level);
+            return level;
         }
 
         public static List<MaterialConfig> CreateMaterials()
         {
+            var configuredItems = ItemConfigLoader.LoadFromProjectFile(ItemConfigLoader.DefaultProjectRelativePath);
+            var roundItems = ItemConfigLoader.SelectRoundItems(configuredItems, RoundMaterialCount);
+            var configuredMaterials = ItemConfigLoader.ToMaterialConfigs(ItemConfigLoader.CloneWithItems(configuredItems, roundItems));
+            if (configuredMaterials.Count > 0)
+            {
+                return configuredMaterials;
+            }
+
             var prefabMaterials = PiecePrefabCatalog.LoadMaterialConfigs();
             if (prefabMaterials.Count > 0)
             {

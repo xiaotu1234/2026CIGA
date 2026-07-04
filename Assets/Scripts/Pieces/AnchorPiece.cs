@@ -10,6 +10,8 @@ namespace BrokenAnchor.Pieces
     [RequireComponent(typeof(RectTransform))]
     public class AnchorPiece : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
     {
+        private const float DragRightButtonRotateStep = 3f;
+
         [SerializeField] private MaterialConfig config = new MaterialConfig();
 
         public MaterialConfig Config => config;
@@ -22,6 +24,7 @@ namespace BrokenAnchor.Pieces
         private Text label;
         private Color normalColor;
         private Vector2 dragOffset;
+        private bool isDragging;
 
         public void Initialize(MaterialConfig config, BuildController owner, RectTransform dragSurface)
         {
@@ -39,7 +42,11 @@ namespace BrokenAnchor.Pieces
             this.dragSurface = dragSurface;
 
             RectTransform = GetComponent<RectTransform>();
-            RectTransform.sizeDelta = this.config.size;
+            if (this.config.size != Vector2.zero)
+            {
+                RectTransform.sizeDelta = this.config.size;
+            }
+
             ShapeCollider = GetComponent<Collider2D>();
 
             image = GetComponent<Image>();
@@ -138,8 +145,22 @@ namespace BrokenAnchor.Pieces
             owner.SelectPiece(this);
         }
 
+        private void FixedUpdate()
+        {
+            if (isDragging)
+            {
+                RotateWhileRightButtonHeld();
+            }
+        }
+
         public void OnBeginDrag(PointerEventData eventData)
         {
+            if (eventData.button != PointerEventData.InputButton.Left)
+            {
+                return;
+            }
+
+            isDragging = true;
             owner.BeginPieceDrag(this);
             RectTransform.SetAsLastSibling();
             RectTransformUtility.ScreenPointToLocalPointInRectangle(dragSurface, eventData.position, eventData.pressEventCamera, out var localPoint);
@@ -148,6 +169,11 @@ namespace BrokenAnchor.Pieces
 
         public void OnDrag(PointerEventData eventData)
         {
+            if (!isDragging)
+            {
+                return;
+            }
+
             RectTransformUtility.ScreenPointToLocalPointInRectangle(dragSurface, eventData.position, eventData.pressEventCamera, out var localPoint);
             RectTransform.anchoredPosition = ClampToDragSurface(localPoint + dragOffset);
             owner.DragPiece(this);
@@ -155,7 +181,22 @@ namespace BrokenAnchor.Pieces
 
         public void OnEndDrag(PointerEventData eventData)
         {
+            if (!isDragging)
+            {
+                return;
+            }
+
+            isDragging = false;
             owner.EndPieceDrag(this);
+        }
+
+        private void RotateWhileRightButtonHeld()
+        {
+            if (Input.GetMouseButton(1))
+            {
+                RectTransform.localRotation *= Quaternion.Euler(0f, 0f, -DragRightButtonRotateStep);
+                owner.RefreshPiecePlacement(this);
+            }
         }
 
         private Vector2 ClampToDragSurface(Vector2 position)

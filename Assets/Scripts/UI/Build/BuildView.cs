@@ -10,17 +10,17 @@ namespace BrokenAnchor.UI
 {
     public class BuildView : MonoBehaviour
     {
-        [SerializeField] private BuildController controller;
-        [SerializeField] private RectTransform workspace;
-        [SerializeField] private RectTransform connectionLayer;
-        [SerializeField] private RectTransform ropeMountPoint;
-        [SerializeField] private RectTransform materialPile;
-        [SerializeField] private Text riskText;
-        [SerializeField] private Text statusText;
-        [SerializeField] private Button rotateButton;
-        [SerializeField] private Button flipButton;
-        [SerializeField] private Button clearButton;
-        [SerializeField] private Button submitButton;
+        private BuildController controller;
+        private RectTransform workspace;
+        private RectTransform connectionLayer;
+        private RectTransform ropeMountPoint;
+        private RectTransform materialPile;
+        private Text riskText;
+        private Text statusText;
+        private Button rotateButton;
+        private Button flipButton;
+        private Button clearButton;
+        private Button submitButton;
 
         private Action<AnchorBuildResult> submitCallback;
 
@@ -39,34 +39,39 @@ namespace BrokenAnchor.UI
             view.materialPile = UIBuilder.CreateRect(root, "MaterialPile", new Vector2(0.03f, 0.15f), new Vector2(0.2f, 0.88f), Vector2.zero, Vector2.zero);
             view.materialPile.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.15f, 0.17f, 1f);
 
-            var pileTitle = UIBuilder.CreateText(view.materialPile, "PileTitle", "材料堆", 20, Color.white, TextAnchor.MiddleCenter);
-            pileTitle.rectTransform.anchorMin = new Vector2(0f, 0.86f);
-            pileTitle.rectTransform.anchorMax = new Vector2(1f, 0.98f);
+            var pileTitle = UIBuilder.CreateText(view.materialPile, "PileTitle", "材料", 21, Color.white, TextAnchor.MiddleCenter);
+            pileTitle.rectTransform.anchorMin = new Vector2(0.05f, 0.92f);
+            pileTitle.rectTransform.anchorMax = new Vector2(0.95f, 0.99f);
             pileTitle.rectTransform.offsetMin = Vector2.zero;
             pileTitle.rectTransform.offsetMax = Vector2.zero;
 
             view.workspace = UIBuilder.CreateRect(root, "Workspace", new Vector2(0.22f, 0.15f), new Vector2(0.76f, 0.88f), Vector2.zero, Vector2.zero);
-            view.workspace.gameObject.AddComponent<Image>().color = new Color(0.11f, 0.16f, 0.16f, 1f);
+            view.workspace.gameObject.AddComponent<Image>().color = new Color(0.05f, 0.12f, 0.14f, 1f);
 
-            var gridText = UIBuilder.CreateText(view.workspace, "WorkspaceHint", "从旁边材料堆拖入拼装区；贴边组合后可旋转、翻转。把一个物品覆盖到上方挂点来连接绳子。", 18, new Color(0.63f, 0.72f, 0.7f, 0.75f), TextAnchor.LowerCenter);
-            gridText.rectTransform.anchorMin = new Vector2(0f, 0f);
-            gridText.rectTransform.anchorMax = new Vector2(1f, 0.12f);
-            gridText.rectTransform.offsetMin = Vector2.zero;
-            gridText.rectTransform.offsetMax = Vector2.zero;
+            var workspaceLabel = UIBuilder.CreateText(view.workspace, "WorkspaceLabel", "工作区", 18, new Color(0.78f, 0.88f, 0.86f), TextAnchor.MiddleCenter);
+            workspaceLabel.rectTransform.anchorMin = new Vector2(0.35f, 0.94f);
+            workspaceLabel.rectTransform.anchorMax = new Vector2(0.65f, 0.99f);
+            workspaceLabel.rectTransform.offsetMin = Vector2.zero;
+            workspaceLabel.rectTransform.offsetMax = Vector2.zero;
 
             view.connectionLayer = UIBuilder.CreateRect(view.workspace, "ConnectionLayer", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            view.connectionLayer.SetAsFirstSibling();
+            view.ropeMountPoint = UIBuilder.CreateRect(view.workspace, "RopeMountPoint", new Vector2(0.45f, 0.88f), new Vector2(0.55f, 0.95f), Vector2.zero, Vector2.zero);
 
-            view.ropeMountPoint = UIBuilder.CreateRect(view.workspace, "RopeMountPoint", new Vector2(0.5f, 0.88f), new Vector2(0.5f, 0.88f), new Vector2(-42f, -20f), new Vector2(42f, 20f));
-            view.ropeMountPoint.gameObject.AddComponent<Image>().color = new Color(0.92f, 0.68f, 0.28f, 0.75f);
-            var mountLabel = UIBuilder.CreateText(view.ropeMountPoint, "Label", "绳子挂点", 15, new Color(0.08f, 0.09f, 0.08f), TextAnchor.MiddleCenter);
-            mountLabel.rectTransform.anchorMin = Vector2.zero;
-            mountLabel.rectTransform.anchorMax = Vector2.one;
-            mountLabel.rectTransform.offsetMin = Vector2.zero;
-            mountLabel.rectTransform.offsetMax = Vector2.zero;
+            view.connectionLayer.gameObject.AddComponent<CanvasRenderer>();
 
-            var side = UIBuilder.CreateRect(root, "RiskPanel", new Vector2(0.78f, 0.15f), new Vector2(0.97f, 0.88f), Vector2.zero, Vector2.zero);
-            side.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.13f, 0.15f, 1f);
+            var side = UIBuilder.CreateRect(root, "SidePanel", new Vector2(0.77f, 0.15f), new Vector2(0.97f, 0.88f), Vector2.zero, Vector2.zero);
+            side.gameObject.AddComponent<Image>().color = new Color(0.07f, 0.12f, 0.15f, 1f);
+
+            var actionLabel = UIBuilder.CreateText(side, "ActionLabel", "操作", 21, Color.white, TextAnchor.MiddleCenter);
+            actionLabel.rectTransform.anchorMin = new Vector2(0.08f, 0.9f);
+            actionLabel.rectTransform.anchorMax = new Vector2(0.92f, 0.98f);
+            actionLabel.rectTransform.offsetMin = Vector2.zero;
+            actionLabel.rectTransform.offsetMax = Vector2.zero;
+
+            view.rotateButton = CreateActionButton(side, "RotateButton", "旋转", 0);
+            view.flipButton = CreateActionButton(side, "FlipButton", "翻转", 1);
+            view.clearButton = CreateActionButton(side, "ClearButton", "清空", 2);
+            view.submitButton = CreateActionButton(side, "SubmitButton", "下锚", 3);
 
             var riskTitle = UIBuilder.CreateText(side, "RiskTitle", "风险提示", 21, Color.white, TextAnchor.MiddleLeft);
             riskTitle.rectTransform.anchorMin = new Vector2(0.08f, 0.86f);
@@ -86,12 +91,12 @@ namespace BrokenAnchor.UI
             view.statusText.rectTransform.offsetMin = Vector2.zero;
             view.statusText.rectTransform.offsetMax = Vector2.zero;
 
-            view.rotateButton = CreateActionButton(side, "RotateButton", "旋转", 0);
-            view.flipButton = CreateActionButton(side, "FlipButton", "翻转", 1);
-            view.clearButton = CreateActionButton(side, "ClearButton", "清空", 2);
-            view.submitButton = CreateActionButton(side, "SubmitButton", "下锚", 3);
             view.controller = root.gameObject.AddComponent<BuildController>();
-            view.BindGeneratedButtonClickEvents();
+            view.controller.Initialize(root, view.workspace, view.connectionLayer, view.ropeMountPoint, view.materialPile, view.riskText, view.statusText, new AttachConfig(), result => view.submitCallback?.Invoke(result));
+            view.rotateButton.onClick.AddListener(view.controller.RotateSelected);
+            view.flipButton.onClick.AddListener(view.controller.FlipSelected);
+            view.clearButton.onClick.AddListener(view.controller.ClearBuild);
+            view.submitButton.onClick.AddListener(view.controller.Submit);
             return view;
         }
 
@@ -106,35 +111,31 @@ namespace BrokenAnchor.UI
 
         public void OnRotateButtonClicked()
         {
-            controller?.RotateSelected();
+            ResolveReferences();
+            controller.RotateSelected();
         }
 
         public void OnFlipButtonClicked()
         {
-            controller?.FlipSelected();
+            ResolveReferences();
+            controller.FlipSelected();
         }
 
         public void OnClearButtonClicked()
         {
-            controller?.ClearBuild();
+            ResolveReferences();
+            controller.ClearBuild();
         }
 
         public void OnSubmitButtonClicked()
         {
-            controller?.Submit();
+            ResolveReferences();
+            controller.Submit();
         }
 
         private void InitializeController()
         {
             controller.Initialize(transform as RectTransform, workspace, connectionLayer, ropeMountPoint, materialPile, riskText, statusText, new AttachConfig(), result => submitCallback?.Invoke(result));
-        }
-
-        private void BindGeneratedButtonClickEvents()
-        {
-            rotateButton.onClick.AddListener(OnRotateButtonClicked);
-            flipButton.onClick.AddListener(OnFlipButtonClicked);
-            clearButton.onClick.AddListener(OnClearButtonClicked);
-            submitButton.onClick.AddListener(OnSubmitButtonClicked);
         }
 
         private void ResolveReferences()

@@ -52,7 +52,6 @@ pieceA
 pieceB
 initialAttachLength
 currentAttachLength
-currentStrength
 relativeDisplacement
 damage
 isBroken
