@@ -602,6 +602,7 @@ GameObject:
   - component: {fileID: 1167363824783887924}
   - component: {fileID: 8527312288335255392}
   - component: {fileID: 3588091032517988075}
+  - component: {fileID: 6624834078763566524}
   m_Layer: 0
   m_Name: PlayArea
   m_TagString: Untagged
@@ -672,6 +673,27 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!95 &6624834078763566524
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4233376920317479331}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 8a706e69312ef8b41871fde72eab3f9c, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &4486842183682226613
 GameObject:
   m_ObjectHideFlags: 0
