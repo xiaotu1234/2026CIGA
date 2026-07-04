@@ -4,6 +4,9 @@
 /Logs/
 /UserSettings/
 
+## IDE local settings
+.idea/
+
 Library/AnnotationManager
 Library/APIUpdater/project-dependencies.graph
 Library/ArtifactDB
