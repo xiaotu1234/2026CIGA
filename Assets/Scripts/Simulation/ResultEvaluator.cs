@@ -37,12 +37,12 @@ namespace BrokenAnchor.Simulation
                 result.reasons.Add("船锚总重量偏轻。");
             }
 
-            result.success = !result.shipEnteredDangerZone && build.isConnected && build.ropeTiePiece != null;
+            result.success = !result.shipEnteredDangerZone;
             result.narrowSuccess = result.success && (remainingDistance < level.dangerZoneDistance * 0.22f || anchorDamage > 0.62f);
 
-            if (result.success && result.reasons.Count == 0)
+            if (result.success)
             {
-                result.reasons.Add(result.narrowSuccess ? "勉强稳住，结构损伤较高。" : "船锚成功拖住船，未进入危险区。");
+                result.reasons.Insert(0, result.narrowSuccess ? "倒计时结束，船勉强留在危险区外。" : "倒计时结束，船被成功拖住。");
             }
 
             while (result.reasons.Count > 3)

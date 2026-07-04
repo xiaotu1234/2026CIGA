@@ -45,8 +45,11 @@ namespace BrokenAnchor.Simulation
         private float shipVelocity;
         private bool anchorOnSeabed;
         private Coroutine running;
+        private float dangerBoundaryX;
+        private float shipTravelPixelsPerMeter = 4f;
 
         private const float WaterEntryDuration = 0.8f;
+        private const float DangerZoneLeftAnchor = 0.88f;
 
         public void Initialize(
             RectTransform playArea,
@@ -187,8 +190,8 @@ namespace BrokenAnchor.Simulation
             shipVelocity += (currentAcceleration - holdPower * (anchorOnSeabed ? 1.45f : 0.35f) - waterDrag) * deltaTime;
             shipVelocity = Mathf.Clamp(shipVelocity, 0f, 42f);
 
-            remainingDistance = Mathf.Max(0f, remainingDistance - shipVelocity * deltaTime);
-            ship.anchoredPosition += new Vector2(shipVelocity * deltaTime * 4f, 0f);
+            ship.anchoredPosition += new Vector2(shipVelocity * deltaTime * shipTravelPixelsPerMeter, 0f);
+            UpdateRemainingDistanceFromShipPosition();
             progressSlider.value = 1f - remainingDistance / level.dangerZoneDistance;
         }
 
@@ -217,18 +220,42 @@ namespace BrokenAnchor.Simulation
             simulationElapsed = 0f;
             shipVelocity = 0f;
             anchorOnSeabed = false;
+            ConfigureDangerZoneMetrics();
             ClearAnchorVisual();
             DrawRope();
         }
 
         private void DrawRope()
         {
-            var start = ship.anchoredPosition + new Vector2(52f, -30f);
+            var start = ship.anchoredPosition + new Vector2(-52f, -30f);
             var end = GetRopeEndPosition();
             var delta = end - start;
             rope.anchoredPosition = (start + end) * 0.5f;
             rope.sizeDelta = new Vector2(delta.magnitude, 5f);
             rope.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
+        }
+
+        private void ConfigureDangerZoneMetrics()
+        {
+            Canvas.ForceUpdateCanvases();
+            var playAreaWidth = playArea != null && playArea.rect.width > 0f ? playArea.rect.width : 900f;
+            dangerBoundaryX = (DangerZoneLeftAnchor - 0.5f) * playAreaWidth;
+
+            var shipRightEdge = GetShipRightEdge();
+            var visualTravelToDanger = Mathf.Max(80f, dangerBoundaryX - shipRightEdge);
+            shipTravelPixelsPerMeter = visualTravelToDanger / Mathf.Max(1f, level.dangerZoneDistance);
+            UpdateRemainingDistanceFromShipPosition();
+        }
+
+        private void UpdateRemainingDistanceFromShipPosition()
+        {
+            var visualRemaining = dangerBoundaryX - GetShipRightEdge();
+            remainingDistance = Mathf.Clamp(visualRemaining / Mathf.Max(0.01f, shipTravelPixelsPerMeter), 0f, level.dangerZoneDistance);
+        }
+
+        private float GetShipRightEdge()
+        {
+            return ship.anchoredPosition.x + ship.sizeDelta.x * 0.5f;
         }
 
         private Vector2 GetRopeEndPosition()
