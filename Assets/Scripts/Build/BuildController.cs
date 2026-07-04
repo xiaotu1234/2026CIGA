@@ -64,14 +64,53 @@ namespace BrokenAnchor.Build
 
         public void SpawnPiece(MaterialConfig config)
         {
-            var go = new GameObject(config.id, typeof(RectTransform));
-            go.transform.SetParent(workspace, false);
-            var piece = go.AddComponent<AnchorPiece>();
+            var piece = CreatePieceInstance(config);
             piece.Initialize(config, this, workspace);
             piece.RectTransform.anchoredPosition = new Vector2(-180f + pieces.Count * 44f, 80f - pieces.Count * 20f);
             pieces.Add(piece);
             SelectPiece(piece);
             RefreshConnections();
+        }
+
+        private AnchorPiece CreatePieceInstance(MaterialConfig config)
+        {
+            GameObject go = null;
+            var prefab = LoadPiecePrefab(config.prefabAssetPath);
+            if (prefab != null)
+            {
+                go = Instantiate(prefab, workspace, false);
+                if (go.GetComponent<RectTransform>() == null)
+                {
+                    Destroy(go);
+                    go = null;
+                }
+            }
+
+            if (go == null)
+            {
+                go = new GameObject(config.id, typeof(RectTransform));
+                go.transform.SetParent(workspace, false);
+            }
+
+            go.name = config.id;
+            var piece = go.GetComponent<AnchorPiece>();
+            if (piece == null)
+            {
+                piece = go.AddComponent<AnchorPiece>();
+            }
+
+            return piece;
+        }
+
+        private static GameObject LoadPiecePrefab(string assetPath)
+        {
+#if UNITY_EDITOR
+            if (!string.IsNullOrEmpty(assetPath))
+            {
+                return UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+            }
+#endif
+            return null;
         }
 
         public void SelectPiece(AnchorPiece piece)

@@ -3,6 +3,24 @@
 本文档说明 `Assets` 目录下与原型相关的文件夹用途。接手开发时先读本文件，再读 `UI_FLOW.md` 和 `DEVELOPMENT_PLAN.md`。
 
 
+
+## 仓库根目录 AI 提示词
+
+仓库根目录放置 `AGENTS.md`，作为 AI 助手进入本项目时的顶层提示词。
+
+用途：
+
+- 告诉 AI 必须先阅读 `Assets/_AI_README.md`。
+- 告诉 AI 新增文件前必须阅读项目结构文档和目标目录 `_FOLDER_README.md`。
+- 防止 AI 为了迁就代码路径随意新建顶层目录。
+
+接手本项目的 AI 阅读顺序必须是：
+
+1. `AGENTS.md`
+2. `Assets/_AI_README.md`
+3. `Assets/Docs/PROJECT_STRUCTURE.md`
+4. 目标目录内的 `_FOLDER_README.md`
+
 ## 每个目录内的 _FOLDER_README.md
 
 `Assets` 下每个文件夹都放置了 `_FOLDER_README.md`。

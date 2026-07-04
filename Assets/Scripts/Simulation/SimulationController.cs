@@ -310,19 +310,33 @@ namespace BrokenAnchor.Simulation
             for (var i = 0; i < build.pieces.Count; i++)
             {
                 var source = build.pieces[i];
-                var rect = UIBuilder.CreateRect(anchor, "SimPiece_" + source.Config.id, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+                var rect = CreateSimPieceRect(source);
                 rect.sizeDelta = source.RectTransform.sizeDelta * anchorScale;
                 rect.anchoredPosition = (source.RectTransform.anchoredPosition - center) * anchorScale;
                 rect.localRotation = source.RectTransform.localRotation;
                 rect.localScale = source.RectTransform.localScale;
 
-                var image = rect.gameObject.AddComponent<Image>();
-                image.color = source.Config.color;
-                var outline = rect.gameObject.AddComponent<Outline>();
+                var image = rect.GetComponent<Image>();
+                if (image == null)
+                {
+                    image = rect.gameObject.AddComponent<Image>();
+                }
+
+                if (image.sprite == null)
+                {
+                    image.color = source.Config.color;
+                }
+
+                var outline = rect.GetComponent<Outline>();
+                if (outline == null)
+                {
+                    outline = rect.gameObject.AddComponent<Outline>();
+                }
+
                 outline.effectColor = IsRopeTiePiece(source) ? new Color(1f, 0.9f, 0.25f, 0.95f) : new Color(0.9f, 1f, 1f, 0.65f);
                 outline.effectDistance = IsRopeTiePiece(source) ? new Vector2(4f, -4f) : new Vector2(2f, -2f);
 
-                var label = UIBuilder.CreateText(rect, "Label", source.Config.displayName, 11, Color.white, TextAnchor.MiddleCenter);
+                var label = GetOrCreateSimLabel(rect, source.Config.displayName);
                 label.rectTransform.anchorMin = Vector2.zero;
                 label.rectTransform.anchorMax = Vector2.one;
                 label.rectTransform.offsetMin = Vector2.zero;
@@ -338,6 +352,59 @@ namespace BrokenAnchor.Simulation
                     weaklyConnected = CountJointsForPiece(source) <= 1
                 });
             }
+        }
+
+        private RectTransform CreateSimPieceRect(AnchorPiece source)
+        {
+            GameObject go = null;
+            var prefab = LoadPiecePrefab(source.Config.prefabAssetPath);
+            if (prefab != null)
+            {
+                go = Instantiate(prefab, anchor, false);
+                if (go.GetComponent<RectTransform>() == null)
+                {
+                    Destroy(go);
+                    go = null;
+                }
+            }
+
+            if (go == null)
+            {
+                return UIBuilder.CreateRect(anchor, "SimPiece_" + source.Config.id, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            }
+
+            go.name = "SimPiece_" + source.Config.id;
+            return go.GetComponent<RectTransform>();
+        }
+
+        private static GameObject LoadPiecePrefab(string assetPath)
+        {
+#if UNITY_EDITOR
+            if (!string.IsNullOrEmpty(assetPath))
+            {
+                return UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+            }
+#endif
+            return null;
+        }
+        private Text GetOrCreateSimLabel(RectTransform rect, string text)
+        {
+            var labelTransform = rect.Find("Label");
+            var label = labelTransform == null ? null : labelTransform.GetComponent<Text>();
+            if (label == null)
+            {
+                label = UIBuilder.CreateText(rect, "Label", text, 11, Color.white, TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                label.text = text;
+                label.font = UIBuilder.Font;
+                label.fontSize = 11;
+                label.color = Color.white;
+                label.alignment = TextAnchor.MiddleCenter;
+            }
+
+            return label;
         }
 
         private Vector2 GetBuildCenter()

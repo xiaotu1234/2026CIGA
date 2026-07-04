@@ -17,6 +17,7 @@ namespace BrokenAnchor.Pieces
         private RectTransform workspace;
         private Image image;
         private Text label;
+        private Color normalColor;
         private Vector2 dragOffset;
 
         public void Initialize(MaterialConfig config, BuildController owner, RectTransform workspace)
@@ -28,14 +29,38 @@ namespace BrokenAnchor.Pieces
             RectTransform = GetComponent<RectTransform>();
             RectTransform.sizeDelta = config.size;
 
-            image = gameObject.AddComponent<Image>();
-            image.color = config.color;
+            image = GetComponent<Image>();
+            if (image == null)
+            {
+                image = gameObject.AddComponent<Image>();
+            }
 
-            var outline = gameObject.AddComponent<Outline>();
+            normalColor = image.sprite == null ? config.color : image.color;
+            image.color = normalColor;
+
+            var outline = GetComponent<Outline>();
+            if (outline == null)
+            {
+                outline = gameObject.AddComponent<Outline>();
+            }
+
             outline.effectColor = new Color(1f, 1f, 1f, 0.65f);
             outline.effectDistance = new Vector2(2f, -2f);
 
-            label = UIBuilder.CreateText(transform, "Label", config.displayName, 15, Color.white, TextAnchor.MiddleCenter);
+            var labelTransform = transform.Find("Label");
+            label = labelTransform == null ? null : labelTransform.GetComponent<Text>();
+            if (label == null)
+            {
+                label = UIBuilder.CreateText(transform, "Label", config.displayName, 15, Color.white, TextAnchor.MiddleCenter);
+            }
+            else
+            {
+                label.text = config.displayName;
+                label.font = UIBuilder.Font;
+                label.fontSize = 15;
+                label.color = Color.white;
+                label.alignment = TextAnchor.MiddleCenter;
+            }
             label.rectTransform.anchorMin = Vector2.zero;
             label.rectTransform.anchorMax = Vector2.one;
             label.rectTransform.offsetMin = Vector2.zero;
@@ -49,7 +74,7 @@ namespace BrokenAnchor.Pieces
                 return;
             }
 
-            image.color = selected ? Color.Lerp(Config.color, Color.white, 0.28f) : Config.color;
+            image.color = selected ? Color.Lerp(normalColor, Color.white, 0.28f) : normalColor;
         }
 
         public void RotateClockwise()
