@@ -17,13 +17,13 @@ namespace BrokenAnchor.Pieces
         public Collider2D ShapeCollider { get; private set; }
 
         private BuildController owner;
-        private RectTransform workspace;
+        private RectTransform dragSurface;
         private Image image;
         private Text label;
         private Color normalColor;
         private Vector2 dragOffset;
 
-        public void Initialize(MaterialConfig config, BuildController owner, RectTransform workspace)
+        public void Initialize(MaterialConfig config, BuildController owner, RectTransform dragSurface)
         {
             if (config != null)
             {
@@ -36,7 +36,7 @@ namespace BrokenAnchor.Pieces
             }
 
             this.owner = owner;
-            this.workspace = workspace;
+            this.dragSurface = dragSurface;
 
             RectTransform = GetComponent<RectTransform>();
             RectTransform.sizeDelta = this.config.size;
@@ -78,6 +78,8 @@ namespace BrokenAnchor.Pieces
             label.rectTransform.anchorMax = Vector2.one;
             label.rectTransform.offsetMin = Vector2.zero;
             label.rectTransform.offsetMax = Vector2.zero;
+
+            RectTransform.SetAsLastSibling();
         }
 
         public MaterialConfig CreateConfigSnapshot(string prefabAssetPath = null)
@@ -120,7 +122,7 @@ namespace BrokenAnchor.Pieces
         public void RotateClockwise()
         {
             RectTransform.localRotation *= Quaternion.Euler(0f, 0f, -45f);
-            owner.RefreshConnections();
+            owner.RefreshPiecePlacement(this);
         }
 
         public void Flip()
@@ -128,7 +130,7 @@ namespace BrokenAnchor.Pieces
             var scale = RectTransform.localScale;
             scale.x *= -1f;
             RectTransform.localScale = scale;
-            owner.RefreshConnections();
+            owner.RefreshPiecePlacement(this);
         }
 
         public void OnPointerClick(PointerEventData eventData)
@@ -138,26 +140,27 @@ namespace BrokenAnchor.Pieces
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            owner.SelectPiece(this);
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(workspace, eventData.position, eventData.pressEventCamera, out var localPoint);
+            owner.BeginPieceDrag(this);
+            RectTransform.SetAsLastSibling();
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(dragSurface, eventData.position, eventData.pressEventCamera, out var localPoint);
             dragOffset = RectTransform.anchoredPosition - localPoint;
         }
 
         public void OnDrag(PointerEventData eventData)
         {
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(workspace, eventData.position, eventData.pressEventCamera, out var localPoint);
-            RectTransform.anchoredPosition = ClampToWorkspace(localPoint + dragOffset);
-            owner.RefreshConnections();
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(dragSurface, eventData.position, eventData.pressEventCamera, out var localPoint);
+            RectTransform.anchoredPosition = ClampToDragSurface(localPoint + dragOffset);
+            owner.DragPiece(this);
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            owner.RefreshConnections();
+            owner.EndPieceDrag(this);
         }
 
-        private Vector2 ClampToWorkspace(Vector2 position)
+        private Vector2 ClampToDragSurface(Vector2 position)
         {
-            var halfWorkspace = workspace.rect.size * 0.5f;
+            var halfWorkspace = dragSurface.rect.size * 0.5f;
             var halfPiece = RectTransform.sizeDelta * 0.5f;
             position.x = Mathf.Clamp(position.x, -halfWorkspace.x + halfPiece.x, halfWorkspace.x - halfPiece.x);
             position.y = Mathf.Clamp(position.y, -halfWorkspace.y + halfPiece.y, halfWorkspace.y - halfPiece.y);

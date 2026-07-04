@@ -24,13 +24,19 @@ namespace BrokenAnchor.UI
             title.rectTransform.offsetMin = Vector2.zero;
             title.rectTransform.offsetMax = Vector2.zero;
 
-            var tray = UIBuilder.CreateRect(root, "MaterialTray", new Vector2(0.03f, 0.15f), new Vector2(0.2f, 0.88f), Vector2.zero, Vector2.zero);
-            tray.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.15f, 0.17f, 1f);
+            var pile = UIBuilder.CreateRect(root, "MaterialPile", new Vector2(0.03f, 0.15f), new Vector2(0.2f, 0.88f), Vector2.zero, Vector2.zero);
+            pile.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.15f, 0.17f, 1f);
+
+            var pileTitle = UIBuilder.CreateText(pile, "PileTitle", "材料堆", 20, Color.white, TextAnchor.MiddleCenter);
+            pileTitle.rectTransform.anchorMin = new Vector2(0f, 0.86f);
+            pileTitle.rectTransform.anchorMax = new Vector2(1f, 0.98f);
+            pileTitle.rectTransform.offsetMin = Vector2.zero;
+            pileTitle.rectTransform.offsetMax = Vector2.zero;
 
             var workspace = UIBuilder.CreateRect(root, "Workspace", new Vector2(0.22f, 0.15f), new Vector2(0.76f, 0.88f), Vector2.zero, Vector2.zero);
             workspace.gameObject.AddComponent<Image>().color = new Color(0.11f, 0.16f, 0.16f, 1f);
 
-            var gridText = UIBuilder.CreateText(workspace, "WorkspaceHint", "拖拽材料贴边组合；点击材料后可旋转、翻转、设为绑点。", 18, new Color(0.63f, 0.72f, 0.7f, 0.75f), TextAnchor.LowerCenter);
+            var gridText = UIBuilder.CreateText(workspace, "WorkspaceHint", "从旁边材料堆拖入拼装区；贴边组合后可旋转、翻转、设为绑点。", 18, new Color(0.63f, 0.72f, 0.7f, 0.75f), TextAnchor.LowerCenter);
             gridText.rectTransform.anchorMin = new Vector2(0f, 0f);
             gridText.rectTransform.anchorMax = new Vector2(1f, 0.12f);
             gridText.rectTransform.offsetMin = Vector2.zero;
@@ -67,7 +73,7 @@ namespace BrokenAnchor.UI
             var submitButton = CreateActionButton(side, "SubmitButton", "下锚", 4);
 
             view.controller = root.gameObject.AddComponent<BuildController>();
-            view.controller.Initialize(workspace, connectionLayer, tray, riskText, statusText, new AttachConfig(), result => view.submitCallback?.Invoke(result));
+            view.controller.Initialize(root, workspace, connectionLayer, pile, riskText, statusText, new AttachConfig(), result => view.submitCallback?.Invoke(result));
             rotateButton.onClick.AddListener(view.controller.RotateSelected);
             flipButton.onClick.AddListener(view.controller.FlipSelected);
             tieButton.onClick.AddListener(view.controller.SetRopeTiePoint);
@@ -79,8 +85,7 @@ namespace BrokenAnchor.UI
         public void Bind(IReadOnlyList<MaterialConfig> materials, Action<AnchorBuildResult> onSubmit)
         {
             submitCallback = onSubmit;
-            controller.ClearBuild();
-            controller.PopulateMaterialTray(materials);
+            controller.PopulateMaterialPile(materials);
         }
 
         private static Button CreateActionButton(Transform parent, string name, string text, int index)
