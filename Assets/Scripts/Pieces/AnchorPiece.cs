@@ -22,9 +22,6 @@ namespace BrokenAnchor.Pieces
         private Text label;
         private Color normalColor;
         private Vector2 dragOffset;
-        private bool isLeftDragging;
-
-        private const float HoldRotateDegreesPerFixedFrame = 3f;
 
         public void Initialize(MaterialConfig config, BuildController owner, RectTransform dragSurface)
         {
@@ -128,12 +125,6 @@ namespace BrokenAnchor.Pieces
             owner.RefreshPiecePlacement(this);
         }
 
-        private void RotateClockwise(float degrees)
-        {
-            RectTransform.localRotation *= Quaternion.Euler(0f, 0f, -degrees);
-            owner.DragPiece(this);
-        }
-
         public void Flip()
         {
             var scale = RectTransform.localScale;
@@ -149,12 +140,6 @@ namespace BrokenAnchor.Pieces
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            if (eventData.button != PointerEventData.InputButton.Left)
-            {
-                return;
-            }
-
-            isLeftDragging = true;
             owner.BeginPieceDrag(this);
             RectTransform.SetAsLastSibling();
             RectTransformUtility.ScreenPointToLocalPointInRectangle(dragSurface, eventData.position, eventData.pressEventCamera, out var localPoint);
@@ -163,11 +148,6 @@ namespace BrokenAnchor.Pieces
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (!isLeftDragging)
-            {
-                return;
-            }
-
             RectTransformUtility.ScreenPointToLocalPointInRectangle(dragSurface, eventData.position, eventData.pressEventCamera, out var localPoint);
             RectTransform.anchoredPosition = ClampToDragSurface(localPoint + dragOffset);
             owner.DragPiece(this);
@@ -175,23 +155,7 @@ namespace BrokenAnchor.Pieces
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            if (!isLeftDragging)
-            {
-                return;
-            }
-
-            isLeftDragging = false;
             owner.EndPieceDrag(this);
-        }
-
-        private void FixedUpdate()
-        {
-            if (!isLeftDragging || !Input.GetMouseButton(1))
-            {
-                return;
-            }
-
-            RotateClockwise(HoldRotateDegreesPerFixedFrame);
         }
 
         private Vector2 ClampToDragSurface(Vector2 position)
