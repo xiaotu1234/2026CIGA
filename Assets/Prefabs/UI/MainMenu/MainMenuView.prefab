@@ -1354,7 +1354,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.15, y: 0.54}
   m_AnchorMax: {x: 0.85, y: 0.62}
-  m_AnchoredPosition: {x: 566, y: 38}
+  m_AnchoredPosition: {x: 522.37, y: 39}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5998395909292667400
@@ -1378,7 +1378,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0, g: 0, b: 0, a: 1}
+  m_Color: {r: 0.21493414, g: 0.27184737, b: 0.4339623, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1386,7 +1386,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_FontData:
-    m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
+    m_Font: {fileID: 12800000, guid: 6e0722c641cb75944aadb9c3028537e8, type: 3}
     m_FontSize: 22
     m_FontStyle: 0
     m_BestFit: 0
@@ -1923,6 +1923,8 @@ MonoBehaviour:
   skipStartAnimationButton: {fileID: 0}
   startAnimationPlayer: {fileID: 7530083748668131421}
   startanimation: {fileID: -3957811451364398148}
+  startButtonFlyEndTime: 0.66
+  comicStartTime: 0.68
 --- !u!111 &7530083748668131421
 Animation:
   m_ObjectHideFlags: 0
