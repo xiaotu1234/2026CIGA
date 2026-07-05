@@ -255,6 +255,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   levelGrid: {fileID: 5329432325631262398}
+  levelButtonPrefab: {fileID: 5743268863578577453, guid: be38d3ed2fe866941bb47a1f479700cb, type: 3}
   progressText: {fileID: 7324503402312866316}
   unlockAllButton: {fileID: 7572085716591059461}
   backButton: {fileID: 5403498051213730360}
