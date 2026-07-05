@@ -1,10 +1,21 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace BrokenAnchor.Config
 {
     public static class PrototypeCatalog
     {
+        public static List<LevelConfig> CreateLevels()
+        {
+            if (PrototypeJsonConfigCatalog.TryCreateLevels(out var levels))
+            {
+                return levels.OrderBy(level => level.levelId).ToList();
+            }
+
+            return new List<LevelConfig> { new LevelConfig() };
+        }
+
         public static LevelConfig CreateLevel()
         {
             if (PrototypeJsonConfigCatalog.TryCreateLevel(out var level))
@@ -13,6 +24,16 @@ namespace BrokenAnchor.Config
             }
 
             return new LevelConfig();
+        }
+
+        public static LevelConfig CreateLevel(int levelId)
+        {
+            if (PrototypeJsonConfigCatalog.TryCreateLevel(levelId, out var level))
+            {
+                return level;
+            }
+
+            return CreateLevel();
         }
 
         public static List<MaterialConfig> CreateMaterials(LevelConfig level)

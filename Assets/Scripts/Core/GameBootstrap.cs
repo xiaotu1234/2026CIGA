@@ -9,6 +9,7 @@ namespace BrokenAnchor.Core
     {
         [SerializeField] private MainMenuView mainMenuPrefab;
         [SerializeField] private SettingsView settingsPrefab;
+        [SerializeField] private LevelSelectView levelSelectPrefab;
         [SerializeField] private StartBriefingView startBriefingPrefab;
         [SerializeField] private BuildView buildPrefab;
         [SerializeField] private SimulationView simulationPrefab;
@@ -27,6 +28,7 @@ namespace BrokenAnchor.Core
 
             var mainMenu = CreateView(mainMenuPrefab, canvas.transform, MainMenuView.Create, nameof(MainMenuView));
             var settings = CreateView(settingsPrefab, canvas.transform, SettingsView.Create, nameof(SettingsView));
+            var levelSelect = CreateView(levelSelectPrefab, canvas.transform, LevelSelectView.Create, nameof(LevelSelectView));
             var briefing = CreateView(startBriefingPrefab, canvas.transform, StartBriefingView.Create, nameof(StartBriefingView));
             var build = CreateView(buildPrefab, canvas.transform, BuildView.Create, nameof(BuildView));
             var simulation = CreateView(simulationPrefab, canvas.transform, SimulationView.Create, nameof(SimulationView));
@@ -34,19 +36,28 @@ namespace BrokenAnchor.Core
 
             flow.Register(GameView.MainMenu, mainMenu.gameObject);
             flow.Register(GameView.Settings, settings.gameObject);
+            flow.Register(GameView.LevelSelect, levelSelect.gameObject);
             flow.Register(GameView.StartBriefing, briefing.gameObject);
             flow.Register(GameView.Build, build.gameObject);
             flow.Register(GameView.Simulation, simulation.gameObject);
             flow.Register(GameView.Result, result.gameObject);
 
             mainMenu.Initialize(
-                () => round.StartNewRound(),
+                () => round.ShowLevelSelect(),
                 () => flow.ShowSettings(),
                 QuitGame);
             settings.Initialize(() => flow.HideSettings());
+            levelSelect.Initialize(
+                levelId =>
+                {
+                    flow.Show(GameView.MainMenu);
+                    mainMenu.PlayStartAnimationThen(() => round.StartNewRound(levelId));
+                },
+                () => round.UnlockAllLevels(),
+                () => flow.Show(GameView.MainMenu));
             briefing.Initialize(() => round.ShowBuild(), () => round.ShowMainMenu());
-            result.Initialize(() => round.StartNewRound(), () => round.ReplayBuild(), () => round.ShowMainMenu());
-            round.Initialize(flow, briefing, build, simulation, result);
+            result.Initialize(() => round.RestartCurrentRound(), () => round.ReplayBuild(), () => round.ShowMainMenu());
+            round.Initialize(flow, levelSelect, briefing, build, simulation, result);
 
             flow.Show(GameView.MainMenu);
         }

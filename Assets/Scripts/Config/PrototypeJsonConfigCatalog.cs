@@ -16,6 +16,11 @@ namespace BrokenAnchor.Config
 
         public static bool TryCreateLevel(out LevelConfig level)
         {
+            return TryCreateLevel(DefaultLevelId, out level);
+        }
+
+        public static bool TryCreateLevel(int levelId, out LevelConfig level)
+        {
             level = null;
             if (!TryLoadJson(LevelConfigFileName, out var levelJson))
             {
@@ -29,9 +34,48 @@ namespace BrokenAnchor.Config
                 return false;
             }
 
-            var row = FindLevel(levelFile.levels, DefaultLevelId) ?? levelFile.levels[0];
+            var row = FindLevel(levelFile.levels, levelId) ?? levelFile.levels[0];
+            level = CreateLevelFromRow(row);
+            ApplyGlobalParameters(level);
+            return true;
+        }
+
+        public static bool TryCreateLevels(out List<LevelConfig> levels)
+        {
+            levels = null;
+            if (!TryLoadJson(LevelConfigFileName, out var levelJson))
+            {
+                return false;
+            }
+
+            var levelFile = JsonUtility.FromJson<LevelConfigFile>(levelJson);
+            if (levelFile == null || levelFile.levels == null || levelFile.levels.Length == 0)
+            {
+                Debug.LogWarning("level_config.json has no usable level rows. Falling back to default LevelConfig.");
+                return false;
+            }
+
+            levels = new List<LevelConfig>();
+            for (var i = 0; i < levelFile.levels.Length; i++)
+            {
+                var row = levelFile.levels[i];
+                if (row == null)
+                {
+                    continue;
+                }
+
+                var level = CreateLevelFromRow(row);
+                ApplyGlobalParameters(level);
+                levels.Add(level);
+            }
+
+            return levels.Count > 0;
+        }
+
+        private static LevelConfig CreateLevelFromRow(LevelConfigRow row)
+        {
             var defaults = new LevelConfig();
-            level = new LevelConfig
+            return new LevelConfig
             {
                 levelId = row.levelId <= 0 ? DefaultLevelId : row.levelId,
                 shipWeight = row.shipWeightDisplay,
@@ -54,9 +98,6 @@ namespace BrokenAnchor.Config
                 maxItemSpeed = Mathf.Max(0f, row.shipSpeedDisplay),
                 underwaterRightForce = Mathf.Max(0f, row.baseItemCount)
             };
-
-            ApplyGlobalParameters(level);
-            return true;
         }
 
         public static bool TryCreateMaterials(LevelConfig level, out List<MaterialConfig> materials)

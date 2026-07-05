@@ -7,6 +7,7 @@ namespace BrokenAnchor.Core
     {
         MainMenu,
         Settings,
+        LevelSelect,
         StartBriefing,
         Build,
         Simulation,

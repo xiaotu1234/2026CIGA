@@ -17,6 +17,7 @@ namespace BrokenAnchor.UI
         private Action onStart;
         private Action onSettings;
         private Action onQuit;
+        private Action startAnimationCompleteCallback;
         private bool isStarting;
         private Coroutine startRoutine;
         private bool buttonClickEventsBound;
@@ -66,7 +67,18 @@ namespace BrokenAnchor.UI
                 return;
             }
 
-            startRoutine = StartCoroutine(PlayStartAnimationThenStart());
+            onStart?.Invoke();
+        }
+
+        public void PlayStartAnimationThen(Action onComplete)
+        {
+            if (isStarting)
+            {
+                return;
+            }
+
+            startAnimationCompleteCallback = onComplete;
+            startRoutine = StartCoroutine(RunStartAnimationThen(onComplete));
         }
 
         public void OnSkipStartAnimationButtonClicked()
@@ -100,7 +112,7 @@ namespace BrokenAnchor.UI
             onQuit?.Invoke();
         }
 
-        private IEnumerator PlayStartAnimationThenStart()
+        private IEnumerator RunStartAnimationThen(Action onComplete)
         {
             isStarting = true;
             SetButtonsInteractable(false);
@@ -120,10 +132,10 @@ namespace BrokenAnchor.UI
             }
 
             startRoutine = null;
-            CompleteStartTransition();
+            CompleteStartTransition(onComplete);
         }
 
-        private void CompleteStartTransition()
+        private void CompleteStartTransition(Action onComplete = null)
         {
             if (!isStarting)
             {
@@ -131,7 +143,8 @@ namespace BrokenAnchor.UI
             }
 
             SetSkipStartAnimationButtonVisible(false);
-            onStart?.Invoke();
+            (onComplete ?? startAnimationCompleteCallback)?.Invoke();
+            startAnimationCompleteCallback = null;
             SetButtonsInteractable(true);
             isStarting = false;
         }
