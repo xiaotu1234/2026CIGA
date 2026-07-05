@@ -13,6 +13,8 @@ namespace BrokenAnchor.UI
         [SerializeField] private Button skipStartAnimationButton;
         [SerializeField] private Animation startAnimationPlayer;
         [SerializeField] private AnimationClip startanimation;
+        [SerializeField] private float startButtonFlyEndTime = 0.66f;
+        [SerializeField] private float comicStartTime = 0.68f;
 
         private Action onStart;
         private Action onSettings;
@@ -72,13 +74,44 @@ namespace BrokenAnchor.UI
 
         public void PlayStartAnimationThen(Action onComplete)
         {
+            PlayIntroComicThen(onComplete);
+        }
+
+        public void PlayStartButtonFlyThen(Action onComplete)
+        {
             if (isStarting)
             {
                 return;
             }
 
             startAnimationCompleteCallback = onComplete;
-            startRoutine = StartCoroutine(RunStartAnimationThen(onComplete));
+            startRoutine = StartCoroutine(RunStartButtonFlyThen(onComplete));
+        }
+
+        public void PlayIntroComicThen(Action onComplete)
+        {
+            if (isStarting)
+            {
+                return;
+            }
+
+            startAnimationCompleteCallback = onComplete;
+            startRoutine = StartCoroutine(RunIntroComicThen(onComplete));
+        }
+
+        public void ResetStartPresentation()
+        {
+            if (startRoutine != null)
+            {
+                StopCoroutine(startRoutine);
+                startRoutine = null;
+            }
+
+            isStarting = false;
+            startAnimationCompleteCallback = null;
+            SampleStartAnimation(0f);
+            SetButtonsInteractable(true);
+            SetSkipStartAnimationButtonVisible(false);
         }
 
         public void OnSkipStartAnimationButtonClicked()
@@ -112,7 +145,22 @@ namespace BrokenAnchor.UI
             onQuit?.Invoke();
         }
 
-        private IEnumerator RunStartAnimationThen(Action onComplete)
+        private IEnumerator RunStartButtonFlyThen(Action onComplete)
+        {
+            isStarting = true;
+            SetButtonsInteractable(false);
+            SetSkipStartAnimationButtonVisible(false);
+
+            if (startAnimationPlayer != null && startanimation != null)
+            {
+                yield return PlayStartAnimationSegment(0f, Mathf.Min(startButtonFlyEndTime, startanimation.length));
+            }
+
+            startRoutine = null;
+            CompleteStartTransition(onComplete);
+        }
+
+        private IEnumerator RunIntroComicThen(Action onComplete)
         {
             isStarting = true;
             SetButtonsInteractable(false);
@@ -120,19 +168,53 @@ namespace BrokenAnchor.UI
 
             if (startAnimationPlayer != null && startanimation != null)
             {
-                startAnimationPlayer.Stop();
-                startAnimationPlayer.clip = startanimation;
-                if (startAnimationPlayer.GetClip(startanimation.name) == null)
-                {
-                    startAnimationPlayer.AddClip(startanimation, startanimation.name);
-                }
-
-                startAnimationPlayer.Play(startanimation.name);
-                yield return new WaitForSeconds(startanimation.length);
+                yield return PlayStartAnimationSegment(Mathf.Min(comicStartTime, startanimation.length), startanimation.length);
             }
 
             startRoutine = null;
             CompleteStartTransition(onComplete);
+        }
+
+        private IEnumerator PlayStartAnimationSegment(float fromTime, float toTime)
+        {
+            PrepareStartAnimationClip();
+
+            var clipName = startanimation.name;
+            var state = startAnimationPlayer[clipName];
+            state.time = fromTime;
+            state.speed = 1f;
+            startAnimationPlayer.Play(clipName);
+
+            var duration = Mathf.Max(0f, toTime - fromTime);
+            yield return new WaitForSeconds(duration);
+
+            startAnimationPlayer.Stop();
+            SampleStartAnimation(toTime);
+        }
+
+        private void PrepareStartAnimationClip()
+        {
+            startAnimationPlayer.Stop();
+            startAnimationPlayer.clip = startanimation;
+            if (startAnimationPlayer.GetClip(startanimation.name) == null)
+            {
+                startAnimationPlayer.AddClip(startanimation, startanimation.name);
+            }
+        }
+
+        private void SampleStartAnimation(float time)
+        {
+            if (startAnimationPlayer == null || startanimation == null)
+            {
+                return;
+            }
+
+            PrepareStartAnimationClip();
+            var state = startAnimationPlayer[startanimation.name];
+            state.enabled = true;
+            state.time = Mathf.Clamp(time, 0f, startanimation.length);
+            startAnimationPlayer.Sample();
+            state.enabled = false;
         }
 
         private void CompleteStartTransition(Action onComplete = null)

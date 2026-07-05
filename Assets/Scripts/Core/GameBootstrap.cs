@@ -43,22 +43,34 @@ namespace BrokenAnchor.Core
             flow.Register(GameView.Result, result.gameObject);
 
             mainMenu.Initialize(
-                () => round.ShowLevelSelect(),
+                () => mainMenu.PlayStartButtonFlyThen(() => round.ShowLevelSelect()),
                 () => flow.ShowSettings(),
                 QuitGame);
             settings.Initialize(() => flow.HideSettings());
             levelSelect.Initialize(
                 levelId =>
                 {
-                    flow.Show(GameView.MainMenu);
-                    mainMenu.PlayStartAnimationThen(() => round.StartNewRound(levelId));
+                    if (levelId == 1)
+                    {
+                        mainMenu.ResetStartPresentation();
+                        flow.Show(GameView.MainMenu);
+                        mainMenu.PlayIntroComicThen(() => round.StartNewRound(levelId));
+                        return;
+                    }
+
+                    round.StartNewRound(levelId);
                 },
                 () => round.UnlockAllLevels(),
-                () => flow.Show(GameView.MainMenu));
+                () =>
+                {
+                    mainMenu.ResetStartPresentation();
+                    flow.Show(GameView.MainMenu);
+                });
             briefing.Initialize(() => round.ShowBuild(), () => round.ShowMainMenu());
             result.Initialize(() => round.RestartCurrentRound(), () => round.ReplayBuild(), () => round.ShowMainMenu());
             round.Initialize(flow, levelSelect, briefing, build, simulation, result);
 
+            mainMenu.ResetStartPresentation();
             flow.Show(GameView.MainMenu);
         }
 
