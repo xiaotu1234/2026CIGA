@@ -38,6 +38,21 @@ namespace BrokenAnchor.Core
             }
         }
 
+        public void ShowLevelSelectOverMainMenu()
+        {
+            foreach (var pair in views)
+            {
+                pair.Value.SetActive(pair.Key == GameView.MainMenu || pair.Key == GameView.LevelSelect);
+            }
+
+            if (views.TryGetValue(GameView.LevelSelect, out var levelSelect))
+            {
+                levelSelect.transform.SetAsLastSibling();
+            }
+
+            previousView = GameView.LevelSelect;
+        }
+
         public void ShowSettings()
         {
             if (views.ContainsKey(GameView.Settings))
@@ -51,6 +66,12 @@ namespace BrokenAnchor.Core
             if (views.ContainsKey(GameView.Settings))
             {
                 views[GameView.Settings].SetActive(false);
+            }
+
+            if (previousView == GameView.LevelSelect)
+            {
+                ShowLevelSelectOverMainMenu();
+                return;
             }
 
             Show(previousView);
