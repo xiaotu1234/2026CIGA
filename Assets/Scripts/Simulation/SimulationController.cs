@@ -23,6 +23,8 @@ namespace BrokenAnchor.Simulation
             public bool weaklyConnected;
             public bool grounded;
             public bool detachedDebris;
+            public bool waterImpactTriggered;
+            public float waterImpactFeedbackRemaining;
             public float unstickCooldown;
         }
 
@@ -70,6 +72,7 @@ namespace BrokenAnchor.Simulation
         private float seabedSampleOffsetX;
         private bool anchorOnSeabed;
         private bool ropeForceEnabled;
+        private bool waterEntryInitialSpeedActive;
         private Coroutine running;
         private readonly List<Vector2> seabedFillPoints = new List<Vector2>();
 
@@ -80,6 +83,11 @@ namespace BrokenAnchor.Simulation
         private const float InversePhysicsScale = 1f / PhysicsScale;
         private const float InitialGravityScale = 6f;
         private const float SeabedGravityScale = 3.6f;
+        private const float WaterImpactFeedbackDuration = 0.16f;
+        private const float WaterImpactFeedbackGravityScale = 0.35f;
+        private const float WaterImpactMinReboundSpeed = 1.2f;
+        private const float WaterImpactReboundSpeedFactor = 0.18f;
+        private const float WaterImpactMaxReboundSpeed = 4f;
         private const float MinEffectiveJointHealth = 0.01f;
         private const float AnchorSpeedPixelsPerMeter = 24f;
         private const float DangerZoneRevealDistance = 120f;
@@ -195,6 +203,7 @@ namespace BrokenAnchor.Simulation
                 {
                     stageText.text = "\u5165\u6c34\u51b2\u51fb";
                     WaterEntryTick();
+                    UpdateWaterEntryInitialSpeed();
                 }
                 else if (!anchorOnSeabed)
                 {
@@ -230,16 +239,48 @@ namespace BrokenAnchor.Simulation
 
         private void WaterEntryTick()
         {
-            var t = Mathf.Clamp01(simulationElapsed / WaterEntryDuration);
-            var entryForce = Vector2.Lerp(new Vector2(0.2f, -1.3f), new Vector2(1.2f, -0.5f), t);
-
             for (var i = 0; i < simulatedPieces.Count; i++)
             {
                 var piece = simulatedPieces[i];
-                var massFactor = Mathf.Max(0.2f, piece.source.Config.weight * 0.012f * Mathf.Max(0f, level.weightDownForceCoefficient));
                 piece.body.gravityScale = InitialGravityScale;
-                piece.body.AddForce(entryForce * massFactor * Mathf.Max(0f, level.forceCoefficient), ForceMode2D.Force);
-                piece.body.AddTorque((piece.weaklyConnected ? 0.22f : 0.08f) * Mathf.Sin(Time.time + i), ForceMode2D.Force);
+                ApplyWaterSurfaceImpact(piece);
+                ApplyWaterImpactMotionFeedback(piece);
+            }
+        }
+
+        private void ApplyWaterSurfaceImpact(SimulatedPiece piece)
+        {
+            if (piece.waterImpactTriggered || GetColliderBottomUi(piece) > SurfaceY)
+            {
+                return;
+            }
+
+            piece.waterImpactTriggered = true;
+            var downwardSpeed = Mathf.Max(0f, -piece.body.velocity.y);
+            var impactImpulse = Mathf.Max(0f, level.waterSurfaceTensionForce) * downwardSpeed;
+            if (impactImpulse <= 0f)
+            {
+                return;
+            }
+
+            piece.body.AddForce(Vector2.up * impactImpulse * piece.body.mass, ForceMode2D.Impulse);
+            piece.waterImpactFeedbackRemaining = WaterImpactFeedbackDuration;
+            var reboundSpeed = Mathf.Clamp(impactImpulse * WaterImpactReboundSpeedFactor, WaterImpactMinReboundSpeed, WaterImpactMaxReboundSpeed);
+            piece.body.velocity = new Vector2(piece.body.velocity.x, Mathf.Max(piece.body.velocity.y, reboundSpeed));
+        }
+
+        private void ApplyWaterImpactMotionFeedback(SimulatedPiece piece)
+        {
+            if (piece.waterImpactFeedbackRemaining <= 0f)
+            {
+                return;
+            }
+
+            piece.waterImpactFeedbackRemaining = Mathf.Max(0f, piece.waterImpactFeedbackRemaining - Time.deltaTime);
+            piece.body.gravityScale = WaterImpactFeedbackGravityScale;
+            if (piece.body.velocity.y < WaterImpactMinReboundSpeed)
+            {
+                piece.body.velocity = new Vector2(piece.body.velocity.x, WaterImpactMinReboundSpeed);
             }
         }
 
@@ -1188,6 +1229,56 @@ namespace BrokenAnchor.Simulation
 
             ApplyJointDamageFalloff(center);
             BuildPhysicsJoints();
+            ApplyWaterEntryInitialSpeed();
+        }
+
+        private void ApplyWaterEntryInitialSpeed()
+        {
+            waterEntryInitialSpeedActive = level.waterEntryInitialSpeed > 0f;
+            if (!waterEntryInitialSpeedActive)
+            {
+                return;
+            }
+
+            var initialVelocity = Vector2.down * level.waterEntryInitialSpeed;
+            for (var i = 0; i < simulatedPieces.Count; i++)
+            {
+                simulatedPieces[i].body.velocity = initialVelocity;
+            }
+        }
+
+        private void UpdateWaterEntryInitialSpeed()
+        {
+            if (!waterEntryInitialSpeedActive)
+            {
+                return;
+            }
+
+            if (HasTouchedWaterSurface())
+            {
+                waterEntryInitialSpeedActive = false;
+                return;
+            }
+
+            var downwardSpeed = -Mathf.Max(0f, level.waterEntryInitialSpeed);
+            for (var i = 0; i < simulatedPieces.Count; i++)
+            {
+                var body = simulatedPieces[i].body;
+                body.velocity = new Vector2(body.velocity.x, downwardSpeed);
+            }
+        }
+
+        private bool HasTouchedWaterSurface()
+        {
+            for (var i = 0; i < simulatedPieces.Count; i++)
+            {
+                if (GetColliderBottomUi(simulatedPieces[i]) <= SurfaceY)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private Collider2D CreateSimCollider(AnchorPiece source, GameObject bodyObject, Vector3 sourceScale)
