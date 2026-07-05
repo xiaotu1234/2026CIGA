@@ -187,8 +187,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config:
-    id: man
-    displayName: "\u51B0\u7EA2\u8336"
+    id: frog
+    displayName: "\u9752\u86D9\u6559\u7EC3"
     materialName: 
     size: {x: 96, y: 96}
     weight: 54
