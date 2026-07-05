@@ -18,6 +18,8 @@ namespace BrokenAnchor.UI
         private Text stageText;
         private Text metricText;
         private Slider progress;
+        private Button mainMenuButton;
+        private Action mainMenuCallback;
 
         public static SimulationView Create(Transform parent)
         {
@@ -26,7 +28,7 @@ namespace BrokenAnchor.UI
             UIBuilder.CreatePanel(root, "Background", new Color(0.02f, 0.08f, 0.13f, 1f));
 
             var title = UIBuilder.CreateText(root, "Title", "下锚模拟", 30, Color.white, TextAnchor.MiddleLeft);
-            title.rectTransform.anchorMin = new Vector2(0.04f, 0.91f);
+            title.rectTransform.anchorMin = new Vector2(0.17f, 0.91f);
             title.rectTransform.anchorMax = new Vector2(0.35f, 0.98f);
             title.rectTransform.offsetMin = Vector2.zero;
             title.rectTransform.offsetMax = Vector2.zero;
@@ -74,9 +76,24 @@ namespace BrokenAnchor.UI
 
             view.progress = CreateProgressSlider(root, "ShipDangerProgress", new Vector2(0.48f, 0.925f), new Vector2(0.72f, 0.955f));
 
+            view.mainMenuButton = CreateMainMenuButton(root);
+            view.mainMenuButton.onClick.AddListener(view.OnMainMenuButtonClicked);
             view.controller = root.gameObject.AddComponent<SimulationController>();
             view.controller.Initialize(view.playArea, view.ship, view.anchor, view.rope, view.countdownText, view.stageText, view.metricText, view.progress, null);
             return view;
+        }
+
+        public void Initialize(Action onMainMenu)
+        {
+            ResolveReferences();
+            mainMenuCallback = onMainMenu;
+            mainMenuButton.onClick.RemoveListener(OnMainMenuButtonClicked);
+            mainMenuButton.onClick.AddListener(OnMainMenuButtonClicked);
+        }
+
+        public void OnMainMenuButtonClicked()
+        {
+            mainMenuCallback?.Invoke();
         }
 
         public void Run(AnchorBuildResult build, LevelConfig level, Action<SimulationResult> onFinished)
@@ -122,6 +139,11 @@ namespace BrokenAnchor.UI
             metricText = metricText != null ? metricText : FindChildComponent<Text>("MetricText");
             progress = progress != null ? progress : FindChildComponent<Slider>("DangerProgress");
             progress = progress != null ? progress : FindChildComponent<Slider>("ShipDangerProgressBg");
+            mainMenuButton = mainMenuButton != null ? mainMenuButton : FindChildComponent<Button>("MainMenuButton");
+            if (mainMenuButton == null)
+            {
+                mainMenuButton = CreateMainMenuButton(transform);
+            }
         }
 
         private T FindChildComponent<T>(string childName) where T : Component
@@ -216,6 +238,17 @@ namespace BrokenAnchor.UI
             slider.fillRect = fill;
             slider.handleRect = handle;
             return slider;
+        }
+
+        private static Button CreateMainMenuButton(Transform parent)
+        {
+            var button = UIBuilder.CreateButton(parent, "MainMenuButton", "返回主界面", null);
+            var rect = button.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.03f, 0.91f);
+            rect.anchorMax = new Vector2(0.15f, 0.975f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            return button;
         }
     }
 }

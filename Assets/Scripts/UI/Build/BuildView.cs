@@ -25,8 +25,10 @@ namespace BrokenAnchor.UI
         [SerializeField] private Button flipButton;
         [SerializeField] private Button clearButton;
         [SerializeField] private Button submitButton;
+        [SerializeField] private Button mainMenuButton;
 
         private Action<AnchorBuildResult> submitCallback;
+        private Action mainMenuCallback;
         private LevelConfig level;
         private Coroutine countdownRoutine;
         private float countdownRemaining;
@@ -39,7 +41,7 @@ namespace BrokenAnchor.UI
             UIBuilder.CreatePanel(root, "Background", new Color(0.035f, 0.09f, 0.105f, 1f));
 
             var title = UIBuilder.CreateText(root, "Title", "拼装船锚", 30, Color.white, TextAnchor.MiddleLeft);
-            title.rectTransform.anchorMin = new Vector2(0.03f, 0.9f);
+            title.rectTransform.anchorMin = new Vector2(0.17f, 0.9f);
             title.rectTransform.anchorMax = new Vector2(0.3f, 0.98f);
             title.rectTransform.offsetMin = Vector2.zero;
             title.rectTransform.offsetMax = Vector2.zero;
@@ -105,9 +107,18 @@ namespace BrokenAnchor.UI
             view.flipButton = CreateActionButton(side, "FlipButton", "翻转", 1);
             view.clearButton = CreateActionButton(side, "ClearButton", "清空", 2);
             view.submitButton = CreateActionButton(side, "SubmitButton", "下锚", 3);
+            view.mainMenuButton = CreateMainMenuButton(root);
             view.controller = root.gameObject.AddComponent<BuildController>();
             view.BindGeneratedButtonClickEvents();
             return view;
+        }
+
+        public void Initialize(Action onMainMenu)
+        {
+            ResolveReferences();
+            mainMenuCallback = onMainMenu;
+            mainMenuButton.onClick.RemoveListener(OnMainMenuButtonClicked);
+            mainMenuButton.onClick.AddListener(OnMainMenuButtonClicked);
         }
 
         public void Bind(LevelConfig level, IReadOnlyList<MaterialConfig> materials, Action<AnchorBuildResult> onSubmit)
@@ -158,6 +169,11 @@ namespace BrokenAnchor.UI
             SubmitBuildFromView();
         }
 
+        public void OnMainMenuButtonClicked()
+        {
+            mainMenuCallback?.Invoke();
+        }
+
         private void InitializeController()
         {
             controller.Initialize(transform as RectTransform, workspace, connectionLayer, ropeMountPoint, materialPile, riskText, statusText, selectedItemInfoText, new AttachConfig(), result => submitCallback?.Invoke(result));
@@ -169,6 +185,7 @@ namespace BrokenAnchor.UI
             flipButton.onClick.AddListener(OnFlipButtonClicked);
             clearButton.onClick.AddListener(OnClearButtonClicked);
             submitButton.onClick.AddListener(OnSubmitButtonClicked);
+            mainMenuButton.onClick.AddListener(OnMainMenuButtonClicked);
         }
 
         private void ResolveReferences()
@@ -192,6 +209,11 @@ namespace BrokenAnchor.UI
             flipButton = flipButton != null ? flipButton : FindChildComponent<Button>("FlipButton");
             clearButton = clearButton != null ? clearButton : FindChildComponent<Button>("ClearButton");
             submitButton = submitButton != null ? submitButton : FindChildComponent<Button>("SubmitButton");
+            mainMenuButton = mainMenuButton != null ? mainMenuButton : FindChildComponent<Button>("MainMenuButton");
+            if (mainMenuButton == null)
+            {
+                mainMenuButton = CreateMainMenuButton(transform);
+            }
         }
 
         private void ValidatePrefabReferences()
@@ -333,6 +355,17 @@ namespace BrokenAnchor.UI
             var rect = button.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(0.12f, 0.25f - index * 0.06f);
             rect.anchorMax = new Vector2(0.88f, 0.3f - index * 0.06f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            return button;
+        }
+
+        private static Button CreateMainMenuButton(Transform parent)
+        {
+            var button = UIBuilder.CreateButton(parent, "MainMenuButton", "返回主界面", null);
+            var rect = button.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.03f, 0.91f);
+            rect.anchorMax = new Vector2(0.15f, 0.975f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
             return button;
