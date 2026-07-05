@@ -44,5 +44,23 @@ namespace BrokenAnchor.Pieces
 
             audioSource.PlayOneShot(clip, volume * AudioSettingsController.VoiceVolume);
         }
+
+        public void PlayDetachedOnce()
+        {
+            if (clip == null)
+            {
+                return;
+            }
+
+            var detachedAudio = new GameObject("PieceDetachedAudio_" + gameObject.name);
+            var detachedSource = detachedAudio.AddComponent<AudioSource>();
+            detachedSource.clip = clip;
+            detachedSource.volume = volume * AudioSettingsController.VoiceVolume;
+            detachedSource.playOnAwake = false;
+            detachedSource.spatialBlend = 0f;
+            detachedSource.Play();
+
+            Destroy(detachedAudio, clip.length + 0.1f);
+        }
     }
 }

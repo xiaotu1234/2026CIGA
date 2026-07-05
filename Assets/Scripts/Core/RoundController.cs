@@ -62,6 +62,16 @@ namespace BrokenAnchor.Core
             StartNewRound(level == null ? 1 : level.levelId);
         }
 
+        public void StartNextRound()
+        {
+            if (!TryGetNextLevelId(out var nextLevelId))
+            {
+                return;
+            }
+
+            StartNewRound(nextLevelId);
+        }
+
         public void UnlockAllLevels()
         {
             LevelProgress.UnlockAll(MaxLevelId);
@@ -131,8 +141,39 @@ namespace BrokenAnchor.Core
                 LevelProgress.MarkLevelCompleted(level.levelId, MaxLevelId);
             }
 
-            resultView.Bind(result);
+            resultView.Bind(result, result.success && TryGetNextLevelId(out _));
             flow.Show(GameView.Result);
+        }
+
+        private bool TryGetNextLevelId(out int nextLevelId)
+        {
+            nextLevelId = 0;
+            if (level == null)
+            {
+                return false;
+            }
+
+            if (levels == null || levels.Count == 0)
+            {
+                levels = PrototypeCatalog.CreateLevels();
+            }
+
+            var currentLevelId = level.levelId;
+            for (var i = 0; i < levels.Count; i++)
+            {
+                var candidate = levels[i];
+                if (candidate == null || candidate.levelId <= currentLevelId)
+                {
+                    continue;
+                }
+
+                if (nextLevelId == 0 || candidate.levelId < nextLevelId)
+                {
+                    nextLevelId = candidate.levelId;
+                }
+            }
+
+            return nextLevelId != 0;
         }
 
         private int MaxLevelId

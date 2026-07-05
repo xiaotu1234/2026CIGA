@@ -1,6 +1,6 @@
 {
   "sourceWorkbook": "Assets/Excel/excel.xlsx",
-  "generatedAt": "2026-07-05T05:03:10Z",
+  "generatedAt": "2026-07-05T06:06:39Z",
   "note": "Item source weight is stored in kilograms and used directly by gameplay and UI.",
   "sourceSheet": "item",
   "columns": [

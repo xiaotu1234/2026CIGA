@@ -16,10 +16,12 @@ namespace BrokenAnchor.UI
         [SerializeField] private VideoClip defeatVideoClip;
         [SerializeField] private Button retryButton;
         [SerializeField] private Button backBuildButton;
+        [SerializeField] private Button nextLevelButton;
         [SerializeField] private Button menuButton;
 
         private Action onRetry;
         private Action onBackBuild;
+        private Action onNextLevel;
         private Action onMenu;
         private bool hasPendingResultVideo;
         private bool pendingResultVideoSuccess;
@@ -44,17 +46,22 @@ namespace BrokenAnchor.UI
 
             view.retryButton = CreateButton(root, "RetryButton", "重新挑战", 0);
             view.backBuildButton = CreateButton(root, "BackBuildButton", "返回拼装", 1);
-            view.menuButton = CreateButton(root, "MenuButton", "主菜单", 2);
+            view.nextLevelButton = CreateButton(root, "NextLevelButton", "下一关", 2);
+            view.menuButton = CreateButton(root, "MenuButton", "主菜单", 3);
             view.BindGeneratedButtonClickEvents();
             return view;
         }
 
-        public void Initialize(Action onRetry, Action onBackBuild, Action onMenu)
+        public void Initialize(Action onRetry, Action onBackBuild, Action onMenu, Action onNextLevel)
         {
             ResolveReferences();
             this.onRetry = onRetry;
             this.onBackBuild = onBackBuild;
             this.onMenu = onMenu;
+            this.onNextLevel = onNextLevel;
+            nextLevelButton.onClick.RemoveListener(OnNextLevelButtonClicked);
+            nextLevelButton.onClick.AddListener(OnNextLevelButtonClicked);
+            SetNextLevelButtonVisible(false);
         }
 
         public void OnRetryButtonClicked()
@@ -67,6 +74,11 @@ namespace BrokenAnchor.UI
             onBackBuild?.Invoke();
         }
 
+        public void OnNextLevelButtonClicked()
+        {
+            onNextLevel?.Invoke();
+        }
+
         public void OnMenuButtonClicked()
         {
             onMenu?.Invoke();
@@ -74,8 +86,14 @@ namespace BrokenAnchor.UI
 
         public void Bind(SimulationResult result)
         {
+            Bind(result, false);
+        }
+
+        public void Bind(SimulationResult result, bool canGoToNextLevel)
+        {
             ResolveReferences();
             QueueResultVideo(result.success);
+            SetNextLevelButtonVisible(result.success && canGoToNextLevel);
 
             if (result.success)
             {
@@ -198,6 +216,7 @@ namespace BrokenAnchor.UI
         {
             retryButton.onClick.AddListener(OnRetryButtonClicked);
             backBuildButton.onClick.AddListener(OnBackBuildButtonClicked);
+            nextLevelButton.onClick.AddListener(OnNextLevelButtonClicked);
             menuButton.onClick.AddListener(OnMenuButtonClicked);
         }
 
@@ -210,6 +229,39 @@ namespace BrokenAnchor.UI
             retryButton = retryButton != null ? retryButton : FindChildComponent<Button>("RetryButton");
             backBuildButton = backBuildButton != null ? backBuildButton : FindChildComponent<Button>("BackBuildButton");
             menuButton = menuButton != null ? menuButton : FindChildComponent<Button>("MenuButton");
+            nextLevelButton = nextLevelButton != null ? nextLevelButton : FindChildComponent<Button>("NextLevelButton");
+            if (nextLevelButton == null)
+            {
+                nextLevelButton = CreateButton(transform, "NextLevelButton", "下一关", 2);
+                CopyButtonStyle(menuButton, nextLevelButton);
+            }
+        }
+
+        private void SetNextLevelButtonVisible(bool visible)
+        {
+            if (nextLevelButton == null)
+            {
+                return;
+            }
+
+            nextLevelButton.gameObject.SetActive(visible);
+            ApplyButtonLayout(visible);
+        }
+
+        private void ApplyButtonLayout(bool includeNextLevel)
+        {
+            var buttonCount = includeNextLevel ? 4 : 3;
+            SetButtonSlot(retryButton, 0, buttonCount);
+            SetButtonSlot(backBuildButton, 1, buttonCount);
+
+            if (includeNextLevel)
+            {
+                SetButtonSlot(nextLevelButton, 2, buttonCount);
+                SetButtonSlot(menuButton, 3, buttonCount);
+                return;
+            }
+
+            SetButtonSlot(menuButton, 2, buttonCount);
         }
 
         private T FindChildComponent<T>(string childName) where T : Component
@@ -228,12 +280,63 @@ namespace BrokenAnchor.UI
         private static Button CreateButton(Transform root, string name, string text, int index)
         {
             var button = UIBuilder.CreateButton(root, name, text, null);
+            SetButtonSlot(button, index, 3);
+            return button;
+        }
+
+        private static void SetButtonSlot(Button button, int index, int count)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            const float buttonWidth = 0.14f;
+            const float buttonGap = 0.04f;
+            var totalWidth = count * buttonWidth + (count - 1) * buttonGap;
+            var start = (1f - totalWidth) * 0.5f;
+            var minX = start + index * (buttonWidth + buttonGap);
             var rect = button.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.25f + index * 0.18f, 0.16f);
-            rect.anchorMax = new Vector2(0.39f + index * 0.18f, 0.24f);
+            rect.anchorMin = new Vector2(minX, 0.16f);
+            rect.anchorMax = new Vector2(minX + buttonWidth, 0.24f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
-            return button;
+        }
+
+        private static void CopyButtonStyle(Button source, Button target)
+        {
+            if (source == null || target == null)
+            {
+                return;
+            }
+
+            var sourceImage = source.targetGraphic as Image;
+            var targetImage = target.targetGraphic as Image;
+            if (sourceImage != null && targetImage != null)
+            {
+                targetImage.sprite = sourceImage.sprite;
+                targetImage.type = sourceImage.type;
+                targetImage.color = sourceImage.color;
+                targetImage.pixelsPerUnitMultiplier = sourceImage.pixelsPerUnitMultiplier;
+            }
+
+            target.colors = source.colors;
+            target.transition = source.transition;
+
+            var sourceText = source.GetComponentInChildren<Text>(true);
+            var targetText = target.GetComponentInChildren<Text>(true);
+            if (sourceText == null || targetText == null)
+            {
+                return;
+            }
+
+            targetText.font = sourceText.font;
+            targetText.fontSize = sourceText.fontSize;
+            targetText.fontStyle = sourceText.fontStyle;
+            targetText.color = sourceText.color;
+            targetText.alignment = sourceText.alignment;
+            targetText.horizontalOverflow = sourceText.horizontalOverflow;
+            targetText.verticalOverflow = sourceText.verticalOverflow;
         }
     }
 }

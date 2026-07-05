@@ -70,7 +70,13 @@ namespace BrokenAnchor.Core
                     flow.Show(GameView.MainMenu);
                 });
             briefing.Initialize(() => round.ShowBuild(), () => round.ShowMainMenu());
-            result.Initialize(() => round.RestartCurrentRound(), () => round.ReplayBuild(), () => round.ShowMainMenu());
+            build.Initialize(() => round.ShowMainMenu());
+            simulation.Initialize(() => round.ShowMainMenu());
+            result.Initialize(
+                () => round.RestartCurrentRound(),
+                () => round.ReplayBuild(),
+                () => round.ShowMainMenu(),
+                () => round.StartNextRound());
             round.Initialize(flow, levelSelect, briefing, build, simulation, result);
 
             mainMenu.ResetStartPresentation();
