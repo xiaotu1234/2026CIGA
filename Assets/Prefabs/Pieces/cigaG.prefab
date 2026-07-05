@@ -94,7 +94,7 @@ GameObject:
   - component: {fileID: 8677382695429463261}
   - component: {fileID: 1263235665641088649}
   m_Layer: 0
-  m_Name: xiaobu
+  m_Name: cigaG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -109,7 +109,7 @@ RectTransform:
   m_GameObject: {fileID: 2520410531213101379}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
+  m_LocalScale: {x: 3.5, y: 3.5, z: 5}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1245900920209090695}
@@ -187,14 +187,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config:
-    id: xiaobu
-    displayName: "\u5C0F\u5E03\uFF08\u732B\uFF09"
+    id: man
+    displayName: "\u51B0\u7EA2\u8336"
     materialName: 
     size: {x: 96, y: 96}
     weight: 54
     density: 7.6
-    adhesive: 1000
-    tensileStrength: 60
+    adhesive: 10
+    tensileStrength: 20
     shearStrength: 42
     dragCoeff: 0.55
     frictionCoeff: 0.5
@@ -202,7 +202,7 @@ MonoBehaviour:
     gripCoeff: 1.2
     color: {r: 0.74, g: 0.78, b: 0.78, a: 1}
     hasHookShape: 1
-    prefabAssetPath: Assets/Prefabs/Pieces/xiaobu.prefab
+    prefabAssetPath: Assets/Prefabs/Pieces/cigaG.prefab
 --- !u!60 &1263235665641088649
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -247,21 +247,14 @@ PolygonCollider2D:
   m_AutoTiling: 0
   m_Points:
     m_Paths:
-    - - {x: -91.88188, y: 50.377045}
-      - {x: -55.008934, y: 51.062126}
-      - {x: -56.54004, y: 40.329315}
-      - {x: 32.843334, y: 24.668365}
-      - {x: 54.88263, y: 5.8513794}
-      - {x: 99.13989, y: 1.2731247}
-      - {x: 100.59387, y: -18.482544}
-      - {x: 49.649536, y: -16.643707}
-      - {x: 37.070267, y: -30.924301}
-      - {x: 26.618637, y: -26.605171}
-      - {x: 18.575562, y: -23.983887}
-      - {x: -74.39368, y: -25.38324}
-      - {x: -91.49689, y: -29.720581}
-      - {x: -92.34448, y: -22.828094}
-      - {x: -95.79529, y: -11.393898}
+    - - {x: 11.377594, y: 14.720425}
+      - {x: 12.424738, y: 10.081139}
+      - {x: 12.8243065, y: -10.27152}
+      - {x: 5.2724533, y: -10.297655}
+      - {x: -7.240801, y: -7.8609047}
+      - {x: -9.72665, y: 3.3306198}
+      - {x: -7.189163, y: 10.466034}
+      - {x: -1.4691582, y: 14.328454}
   m_UseDelaunayMesh: 0
 --- !u!1 &7799550498348629064
 GameObject:
@@ -298,7 +291,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 2, y: 2}
-  m_SizeDelta: {x: 512, y: 256}
+  m_SizeDelta: {x: 64, y: 64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3816133095320695358
 CanvasRenderer:
@@ -328,7 +321,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 2800000, guid: 7abc627925e801647b4ba1bbe0592bc2, type: 3}
+  m_Texture: {fileID: 2800000, guid: 84555c767cc6aff4dbb037ccbd5e3253, type: 3}
   m_UVRect:
     serializedVersion: 2
     x: 0

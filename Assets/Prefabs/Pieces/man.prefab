@@ -191,6 +191,7 @@ MonoBehaviour:
   config:
     id: man
     displayName: "\u51B0\u7EA2\u8336"
+    materialName: 
     size: {x: 96, y: 96}
     weight: 54
     density: 7.6
@@ -252,7 +253,7 @@ PolygonCollider2D:
       - {x: 9.21122, y: 49.895195}
       - {x: 20.762402, y: 28.894562}
       - {x: 18.639526, y: -24.627838}
-      - {x: 24.758362, y: -45.082436}
+      - {x: 19.27826, y: -46.45246}
       - {x: -20.836731, y: -45.47406}
       - {x: -17.121216, y: 32.039543}
   m_UseDelaunayMesh: 0
