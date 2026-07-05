@@ -95,14 +95,6 @@ namespace BrokenAnchor.UI
             view.riskText.rectTransform.offsetMin = Vector2.zero;
             view.riskText.rectTransform.offsetMax = Vector2.zero;
 
-            view.selectedItemInfoPanel = UIBuilder.CreateRect(side, "SelectedItemInfoPanel", new Vector2(0.08f, 0.7f), new Vector2(0.92f, 0.84f), Vector2.zero, Vector2.zero);
-            view.selectedItemInfoPanel.gameObject.AddComponent<Image>().color = new Color(0.92f, 0.95f, 0.9f, 0.95f);
-            view.selectedItemInfoText = UIBuilder.CreateText(view.selectedItemInfoPanel, "SelectedItemInfoText", "", 16, Color.black, TextAnchor.UpperLeft);
-            view.selectedItemInfoText.rectTransform.anchorMin = Vector2.zero;
-            view.selectedItemInfoText.rectTransform.anchorMax = Vector2.one;
-            view.selectedItemInfoText.rectTransform.offsetMin = new Vector2(10f, 6f);
-            view.selectedItemInfoText.rectTransform.offsetMax = new Vector2(-10f, -6f);
-
             view.statusText = UIBuilder.CreateText(root, "StatusText", "", 16, new Color(0.84f, 0.92f, 0.91f), TextAnchor.MiddleLeft);
             view.statusText.rectTransform.anchorMin = new Vector2(0.22f, 0.07f);
             view.statusText.rectTransform.anchorMax = new Vector2(0.76f, 0.13f);
@@ -125,8 +117,7 @@ namespace BrokenAnchor.UI
             submitTriggered = false;
             countdownRemaining = Mathf.Max(0f, level == null ? 0f : level.buildTimeSeconds);
             ResolveReferences();
-            EnsureRuntimeTextReferences();
-            StyleCountdownText(countdownText);
+            ValidatePrefabReferences();
             RemovePrefabAnchorPiecePlaceholders();
             InitializeController();
             controller.PopulateMaterialPile(materials);
@@ -192,9 +183,9 @@ namespace BrokenAnchor.UI
             connectionLayer = connectionLayer != null ? connectionLayer : FindChildComponent<RectTransform>("ConnectionLayer");
             ropeMountPoint = ropeMountPoint != null ? ropeMountPoint : FindChildComponent<RectTransform>("RopeMountPoint");
             materialPile = materialPile != null ? materialPile : FindChildComponent<RectTransform>("MaterialPile");
-            countdownText = countdownText != null ? countdownText : FindChildComponent<Text>("CountdownText");
-            selectedItemInfoPanel = selectedItemInfoPanel != null ? selectedItemInfoPanel : FindChildComponent<RectTransform>("SelectedItemInfoPanel");
-            selectedItemInfoText = selectedItemInfoText != null ? selectedItemInfoText : FindChildComponent<Text>("SelectedItemInfoText");
+            // CountdownText is prefab-authored only; keep its prefab styling and reference.
+            // SelectedItemInfoPanel and SelectedItemInfoText are prefab-authored only.
+            // Do not resolve or create them at runtime; keep prefab configuration as-is.
             riskText = riskText != null ? riskText : FindChildComponent<Text>("RiskText");
             statusText = statusText != null ? statusText : FindChildComponent<Text>("StatusText");
             rotateButton = rotateButton != null ? rotateButton : FindChildComponent<Button>("RotateButton");
@@ -203,17 +194,11 @@ namespace BrokenAnchor.UI
             submitButton = submitButton != null ? submitButton : FindChildComponent<Button>("SubmitButton");
         }
 
-        private void EnsureRuntimeTextReferences()
+        private void ValidatePrefabReferences()
         {
-            var root = transform as RectTransform;
-            if (countdownText == null && root != null)
+            if (countdownText == null)
             {
-                countdownText = UIBuilder.CreateText(root, "CountdownText", "", 40, Color.red, TextAnchor.MiddleCenter);
-                countdownText.rectTransform.anchorMin = new Vector2(0.35f, 0.9f);
-                countdownText.rectTransform.anchorMax = new Vector2(0.65f, 0.98f);
-                countdownText.rectTransform.offsetMin = Vector2.zero;
-                countdownText.rectTransform.offsetMax = Vector2.zero;
-                StyleCountdownText(countdownText);
+                Debug.LogWarning("BuildView prefab is missing CountdownText. Countdown will be hidden.");
             }
 
             if (selectedItemInfoPanel == null)
@@ -226,7 +211,6 @@ namespace BrokenAnchor.UI
                 Debug.LogWarning("BuildView prefab is missing SelectedItemInfoText. Selected item info will be hidden.");
             }
 
-            StyleSelectedItemInfoText();
         }
 
         private static void StyleCountdownText(Text text)
@@ -250,26 +234,6 @@ namespace BrokenAnchor.UI
             outline.effectDistance = new Vector2(3f, -3f);
             outline.useGraphicAlpha = true;
         }
-        private void StyleSelectedItemInfoText()
-        {
-            if (selectedItemInfoText == null)
-            {
-                return;
-            }
-
-            selectedItemInfoText.fontSize = 16;
-            selectedItemInfoText.color = Color.black;
-            selectedItemInfoText.alignment = TextAnchor.UpperLeft;
-
-            if (selectedItemInfoPanel != null && selectedItemInfoText.transform.parent == selectedItemInfoPanel)
-            {
-                selectedItemInfoText.rectTransform.anchorMin = Vector2.zero;
-                selectedItemInfoText.rectTransform.anchorMax = Vector2.one;
-                selectedItemInfoText.rectTransform.offsetMin = new Vector2(10f, 6f);
-                selectedItemInfoText.rectTransform.offsetMax = new Vector2(-10f, -6f);
-            }
-        }
-
         private void OnEnable()
         {
             StartCountdownIfNeeded();

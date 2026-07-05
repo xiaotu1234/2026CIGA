@@ -37,8 +37,9 @@ namespace BrokenAnchor.Build
         private RectTransform workspace;
         private RectTransform connectionLayer;
         private RectTransform ropeMountPoint;
-        private RectTransform ropeMountAreaRect;
-        private Image ropeMountAreaFill;
+        [SerializeField] private RectTransform ropeMountAreaRect;
+        [SerializeField] private Image ropeMountAreaFill;
+        [SerializeField] private Image[] ropeMountAreaBorderImages = Array.Empty<Image>();
         private readonly List<Image> ropeMountAreaBorders = new List<Image>();
         private RectTransform materialPile;
         private Text riskText;
@@ -48,6 +49,9 @@ namespace BrokenAnchor.Build
         private AnchorPiece selectedPiece;
         private AnchorPiece ropeTiePiece;
         private AnchorPiece draggingPiece;
+        private bool warnedMissingRopeMountArea;
+        private bool warnedMissingRopeMountFill;
+        private bool warnedMissingRopeMountBorders;
         private int ropeMountAreaRefreshFrames;
         private Action<AnchorBuildResult> onSubmit;
 
@@ -77,7 +81,7 @@ namespace BrokenAnchor.Build
             this.selectedItemInfoText = selectedItemInfoText;
             this.attachConfig = attachConfig;
             this.onSubmit = onSubmit;
-            EnsureRopeMountAreaVisual();
+            ResolveRopeMountAreaReferences();
             UpdateRopeMountVisual();
             ropeMountAreaRefreshFrames = 6;
         }
@@ -91,7 +95,7 @@ namespace BrokenAnchor.Build
 
             ropeMountAreaRefreshFrames--;
             Canvas.ForceUpdateCanvases();
-            EnsureRopeMountAreaVisual();
+            UpdateRopeMountAreaVisualRect(ropeMountAreaRect);
         }
 
         public void PopulateMaterialPile(IReadOnlyList<MaterialConfig> materials)
@@ -854,7 +858,7 @@ namespace BrokenAnchor.Build
                     : new Color(0.45f, 0.98f, 0.72f, 0.85f);
             }
 
-            EnsureRopeMountAreaVisual();
+            ResolveRopeMountAreaReferences();
             var areaColor = ropeTiePiece == null
                 ? new Color(1f, 0.36f, 0.22f, 0.18f)
                 : new Color(0.22f, 1f, 0.58f, 0.24f);
@@ -876,80 +880,57 @@ namespace BrokenAnchor.Build
             }
         }
 
-        private void EnsureRopeMountAreaVisual()
+        private void ResolveRopeMountAreaReferences()
         {
-            if (ropeMountPoint == null)
+            ropeMountAreaBorders.Clear();
+            if (ropeMountAreaRect == null)
             {
+                LogMissingPrefabReference("BuildController prefab is missing RopeMountDetectionArea. Rope mount area visual will be hidden.", ref warnedMissingRopeMountArea);
                 return;
             }
 
-            var area = ropeMountPoint.Find("RopeMountDetectionArea") as RectTransform;
-            if (area == null)
+            if (ropeMountAreaFill == null)
             {
-                area = CreateStretchRect(ropeMountPoint, "RopeMountDetectionArea", Vector2.zero, Vector2.zero);
-                ropeMountAreaFill = area.gameObject.AddComponent<Image>();
-                ropeMountAreaFill.raycastTarget = false;
-                CreateBorderLine(area, "TopBorder", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -RopeMountAreaBorderThickness), Vector2.zero);
-                CreateBorderLine(area, "BottomBorder", Vector2.zero, new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, RopeMountAreaBorderThickness));
-                CreateBorderLine(area, "LeftBorder", Vector2.zero, new Vector2(0f, 1f), Vector2.zero, new Vector2(RopeMountAreaBorderThickness, 0f));
-                CreateBorderLine(area, "RightBorder", new Vector2(1f, 0f), Vector2.one, new Vector2(-RopeMountAreaBorderThickness, 0f), Vector2.zero);
+                LogMissingPrefabReference("BuildController prefab is missing RopeMountDetectionArea Image. Rope mount area fill will be hidden.", ref warnedMissingRopeMountFill);
             }
             else
             {
-                ropeMountAreaFill = area.GetComponent<Image>();
-                if (ropeMountAreaFill == null)
-                {
-                    ropeMountAreaFill = area.gameObject.AddComponent<Image>();
-                }
-
                 ropeMountAreaFill.raycastTarget = false;
             }
 
-            ropeMountAreaRect = area;
-            ropeMountAreaBorders.Clear();
-            AddRopeMountBorder(area, "TopBorder");
-            AddRopeMountBorder(area, "BottomBorder");
-            AddRopeMountBorder(area, "LeftBorder");
-            AddRopeMountBorder(area, "RightBorder");
-            area.SetAsFirstSibling();
-            UpdateRopeMountAreaVisualRect(area);
+            if (ropeMountAreaBorderImages != null)
+            {
+                for (var i = 0; i < ropeMountAreaBorderImages.Length; i++)
+                {
+                    var image = ropeMountAreaBorderImages[i];
+                    if (image == null)
+                    {
+                        continue;
+                    }
+
+                    image.raycastTarget = false;
+                    ropeMountAreaBorders.Add(image);
+                }
+            }
+
+            if (ropeMountAreaBorders.Count == 0)
+            {
+                LogMissingPrefabReference("BuildController prefab is missing rope mount border Images. Rope mount area border will be hidden.", ref warnedMissingRopeMountBorders);
+            }
+
+            ropeMountAreaRect.SetAsFirstSibling();
+            UpdateRopeMountAreaVisualRect(ropeMountAreaRect);
         }
 
-        private void AddRopeMountBorder(RectTransform area, string borderName)
+        private static void LogMissingPrefabReference(string message, ref bool alreadyWarned)
         {
-            var border = area.Find(borderName);
-            if (border == null)
+            if (alreadyWarned)
             {
                 return;
             }
 
-            var image = border.GetComponent<Image>();
-            if (image != null)
-            {
-                image.raycastTarget = false;
-                ropeMountAreaBorders.Add(image);
-            }
-        }
-
-        private static RectTransform CreateStretchRect(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rect = go.GetComponent<RectTransform>();
-            rect.anchorMin = anchorMin;
-            rect.anchorMax = anchorMax;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            return rect;
-        }
-
-        private static void CreateBorderLine(RectTransform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
-        {
-            var rect = CreateStretchRect(parent, name, anchorMin, anchorMax);
-            rect.offsetMin = offsetMin;
-            rect.offsetMax = offsetMax;
-            var image = rect.gameObject.AddComponent<Image>();
-            image.raycastTarget = false;
+            alreadyWarned = true;
+            Debug.LogWarning(message);
         }
 
         private void UpdateRopeMountAreaVisualRect(RectTransform area)
