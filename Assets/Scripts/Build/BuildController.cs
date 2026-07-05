@@ -810,25 +810,6 @@ namespace BrokenAnchor.Build
             }
 
             ResolveRopeMountAreaReferences();
-            var areaColor = ropeTiePiece == null
-                ? new Color(1f, 0.36f, 0.22f, 0.18f)
-                : new Color(0.22f, 1f, 0.58f, 0.24f);
-            var borderColor = ropeTiePiece == null
-                ? new Color(1f, 0.52f, 0.24f, 0.95f)
-                : new Color(0.28f, 1f, 0.66f, 1f);
-
-            if (ropeMountAreaFill != null)
-            {
-                ropeMountAreaFill.color = areaColor;
-            }
-
-            for (var i = 0; i < ropeMountAreaBorders.Count; i++)
-            {
-                if (ropeMountAreaBorders[i] != null)
-                {
-                    ropeMountAreaBorders[i].color = borderColor;
-                }
-            }
         }
 
         private void ResolveRopeMountAreaReferences()
@@ -846,6 +827,7 @@ namespace BrokenAnchor.Build
             }
             else
             {
+                ropeMountAreaFill.enabled = false;
                 ropeMountAreaFill.raycastTarget = false;
             }
 
@@ -859,6 +841,7 @@ namespace BrokenAnchor.Build
                         continue;
                     }
 
+                    image.enabled = false;
                     image.raycastTarget = false;
                     ropeMountAreaBorders.Add(image);
                 }
