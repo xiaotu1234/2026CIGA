@@ -210,6 +210,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8951576346940396635}
   - component: {fileID: 3601951189874274003}
+  - component: {fileID: 7617532088431519067}
   m_Layer: 0
   m_Name: LevelSelectView
   m_TagString: Untagged
@@ -255,9 +256,31 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   levelGrid: {fileID: 5329432325631262398}
+  levelButtonPrefab: {fileID: 5743268863578577453, guid: be38d3ed2fe866941bb47a1f479700cb, type: 3}
   progressText: {fileID: 7324503402312866316}
   unlockAllButton: {fileID: 7572085716591059461}
   backButton: {fileID: 5403498051213730360}
+--- !u!95 &7617532088431519067
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2643851279635139661}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: c588761bcc37cd74f8c803c9c900a2d7, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &2703481020927428069
 GameObject:
   m_ObjectHideFlags: 0

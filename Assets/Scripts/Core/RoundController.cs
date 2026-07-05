@@ -44,7 +44,7 @@ namespace BrokenAnchor.Core
         public void ShowLevelSelect()
         {
             RefreshLevelSelect();
-            flow.Show(GameView.LevelSelect);
+            flow.ShowLevelSelectOverMainMenu();
         }
 
         public void StartNewRound(int levelId)

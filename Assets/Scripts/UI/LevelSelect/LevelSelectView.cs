@@ -9,6 +9,7 @@ namespace BrokenAnchor.UI
     public class LevelSelectView : MonoBehaviour
     {
         [SerializeField] private RectTransform levelGrid;
+        [SerializeField] private Button levelButtonPrefab;
         [SerializeField] private Text progressText;
         [SerializeField] private Button unlockAllButton;
         [SerializeField] private Button backButton;
@@ -102,23 +103,21 @@ namespace BrokenAnchor.UI
 
         private void CreateLevelButton(LevelConfig level, bool unlocked)
         {
-            var button = UIBuilder.CreateButton(levelGrid, $"LevelButton_{level.levelId}", unlocked ? $"第 {level.levelId} 关" : $"第 {level.levelId} 关\n未解锁", null);
-            button.interactable = unlocked;
-            var colors = button.colors;
-            colors.disabledColor = new Color(0.18f, 0.23f, 0.24f, 1f);
-            button.colors = colors;
-
-            var image = button.GetComponent<Image>();
-            if (image != null)
+            if (levelButtonPrefab == null)
             {
-                image.color = unlocked ? new Color(0.12f, 0.32f, 0.36f, 1f) : new Color(0.12f, 0.15f, 0.16f, 1f);
+                Debug.LogWarning("LevelSelectView prefab is missing LevelButton prefab. Level buttons will be hidden.");
+                return;
             }
 
-            var label = button.GetComponentInChildren<Text>();
+            var button = Instantiate(levelButtonPrefab, levelGrid, false);
+            button.gameObject.name = $"LevelButton_{level.levelId}";
+            button.onClick.RemoveAllListeners();
+            button.interactable = unlocked;
+
+            var label = button.GetComponentInChildren<Text>(true);
             if (label != null)
             {
-                label.fontSize = 20;
-                label.color = unlocked ? Color.white : new Color(0.62f, 0.68f, 0.68f);
+                label.text = unlocked ? $"第 {level.levelId} 关" : $"第 {level.levelId} 关\n未解锁";
             }
 
             var selectedLevelId = level.levelId;
