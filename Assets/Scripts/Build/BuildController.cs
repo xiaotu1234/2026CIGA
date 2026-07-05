@@ -32,8 +32,9 @@ namespace BrokenAnchor.Build
         private const float PreviewMinAttachLengthMultiplier = 0.6f;
         private const float RopeMountMinCoverage = 0.35f;
         private const float RopeMountAreaBorderThickness = 3f;
-        private const float RopeMountDetectionWidth = 70f;
-        private const float RopeMountDetectionHeight = 42f;
+        private const float MaterialPileHorizontalPadding = 48f;
+        private const float MaterialPileVerticalPadding = 52f;
+        private const float MaterialPileJitterRatio = 0.22f;
 
         private RectTransform dragSurface;
         private RectTransform workspace;
@@ -54,7 +55,6 @@ namespace BrokenAnchor.Build
         private bool warnedMissingRopeMountArea;
         private bool warnedMissingRopeMountFill;
         private bool warnedMissingRopeMountBorders;
-        private int ropeMountAreaRefreshFrames;
         private Action<AnchorBuildResult> onSubmit;
 
         public IReadOnlyList<AnchorPiece> Pieces => pieces;
@@ -85,19 +85,6 @@ namespace BrokenAnchor.Build
             this.onSubmit = onSubmit;
             ResolveRopeMountAreaReferences();
             UpdateRopeMountVisual();
-            ropeMountAreaRefreshFrames = 6;
-        }
-
-        private void LateUpdate()
-        {
-            if (ropeMountAreaRefreshFrames <= 0)
-            {
-                return;
-            }
-
-            ropeMountAreaRefreshFrames--;
-            Canvas.ForceUpdateCanvases();
-            UpdateRopeMountAreaVisualRect(ropeMountAreaRect);
         }
 
         public void PopulateMaterialPile(IReadOnlyList<MaterialConfig> materials)
@@ -109,7 +96,7 @@ namespace BrokenAnchor.Build
                 var piece = CreatePieceInstance(material);
                 piece.Initialize(material, this, dragSurface);
                 var pileRotation = GetRandomPileRotation();
-                piece.RectTransform.anchoredPosition = GetPilePosition(i);
+                piece.RectTransform.anchoredPosition = GetPilePosition(i, materials.Count);
                 piece.RectTransform.localRotation = Quaternion.Euler(0f, 0f, pileRotation);
                 piece.RectTransform.SetAsLastSibling();
 
@@ -771,50 +758,12 @@ namespace BrokenAnchor.Build
 
         private Rect GetRopeMountRect()
         {
-            if (TryGetRopeMountLabelCenter(out var labelCenter))
+            if (ropeMountAreaRect != null)
             {
-                var halfSize = new Vector2(RopeMountDetectionWidth, RopeMountDetectionHeight) * 0.5f;
-                return Rect.MinMaxRect(labelCenter.x - halfSize.x, labelCenter.y - halfSize.y, labelCenter.x + halfSize.x, labelCenter.y + halfSize.y);
+                return GetRectTransformLocalRect(ropeMountAreaRect);
             }
 
             return GetRectTransformLocalRect(ropeMountPoint);
-        }
-
-        private bool TryGetRopeMountLabelCenter(out Vector2 center)
-        {
-            center = default;
-            if (ropeMountPoint == null || dragSurface == null)
-            {
-                return false;
-            }
-
-            var label = ropeMountPoint.Find("Label") as RectTransform;
-            if (label != null && label.gameObject.activeInHierarchy)
-            {
-                center = GetRectTransformLocalRect(label).center;
-                return true;
-            }
-
-            var texts = ropeMountPoint.GetComponentsInChildren<Text>(true);
-            for (var i = 0; i < texts.Length; i++)
-            {
-                var text = texts[i];
-                if (text == null || !text.gameObject.activeInHierarchy)
-                {
-                    continue;
-                }
-
-                var textRect = text.transform as RectTransform;
-                if (textRect == null)
-                {
-                    continue;
-                }
-
-                center = GetRectTransformLocalRect(textRect).center;
-                return true;
-            }
-
-            return false;
         }
 
         private Rect GetRectTransformLocalRect(RectTransform rectTransform)
@@ -861,25 +810,6 @@ namespace BrokenAnchor.Build
             }
 
             ResolveRopeMountAreaReferences();
-            var areaColor = ropeTiePiece == null
-                ? new Color(1f, 0.36f, 0.22f, 0.18f)
-                : new Color(0.22f, 1f, 0.58f, 0.24f);
-            var borderColor = ropeTiePiece == null
-                ? new Color(1f, 0.52f, 0.24f, 0.95f)
-                : new Color(0.28f, 1f, 0.66f, 1f);
-
-            if (ropeMountAreaFill != null)
-            {
-                ropeMountAreaFill.color = areaColor;
-            }
-
-            for (var i = 0; i < ropeMountAreaBorders.Count; i++)
-            {
-                if (ropeMountAreaBorders[i] != null)
-                {
-                    ropeMountAreaBorders[i].color = borderColor;
-                }
-            }
         }
 
         private void ResolveRopeMountAreaReferences()
@@ -897,6 +827,7 @@ namespace BrokenAnchor.Build
             }
             else
             {
+                ropeMountAreaFill.enabled = false;
                 ropeMountAreaFill.raycastTarget = false;
             }
 
@@ -910,6 +841,7 @@ namespace BrokenAnchor.Build
                         continue;
                     }
 
+                    image.enabled = false;
                     image.raycastTarget = false;
                     ropeMountAreaBorders.Add(image);
                 }
@@ -921,7 +853,6 @@ namespace BrokenAnchor.Build
             }
 
             ropeMountAreaRect.SetAsFirstSibling();
-            UpdateRopeMountAreaVisualRect(ropeMountAreaRect);
         }
 
         private static void LogMissingPrefabReference(string message, ref bool alreadyWarned)
@@ -935,39 +866,48 @@ namespace BrokenAnchor.Build
             Debug.LogWarning(message);
         }
 
-        private void UpdateRopeMountAreaVisualRect(RectTransform area)
+        private Vector2 GetPilePosition(int index, int totalCount)
         {
-            if (area == null || dragSurface == null || ropeMountPoint == null)
+            if (materialPile == null || dragSurface == null)
             {
-                return;
+                return Vector2.zero;
             }
 
-            var mountRect = GetRopeMountRect();
-            var min = (Vector2)ropeMountPoint.InverseTransformPoint(dragSurface.TransformPoint(mountRect.min));
-            var max = (Vector2)ropeMountPoint.InverseTransformPoint(dragSurface.TransformPoint(mountRect.max));
-            area.anchorMin = new Vector2(0.5f, 0.5f);
-            area.anchorMax = new Vector2(0.5f, 0.5f);
-            area.pivot = new Vector2(0.5f, 0.5f);
-            area.anchoredPosition = (min + max) * 0.5f;
-            area.sizeDelta = new Vector2(Mathf.Abs(max.x - min.x), Mathf.Abs(max.y - min.y));
-        }
+            var rect = materialPile.rect;
+            var horizontalPadding = Mathf.Min(MaterialPileHorizontalPadding, rect.width * 0.45f);
+            var verticalPadding = Mathf.Min(MaterialPileVerticalPadding, rect.height * 0.45f);
+            var usableWidth = Mathf.Max(1f, rect.width - horizontalPadding * 2f);
+            var usableHeight = Mathf.Max(1f, rect.height - verticalPadding * 2f);
+            var count = Mathf.Max(1, totalCount);
+            var aspect = Mathf.Max(0.35f, usableWidth / Mathf.Max(1f, usableHeight));
+            var columns = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(count * aspect)));
+            var rows = Mathf.Max(1, Mathf.CeilToInt(count / (float)columns));
+            var column = index % columns;
+            var row = index / columns;
+            var cellWidth = usableWidth / columns;
+            var cellHeight = usableHeight / rows;
+            var x = rect.xMin + horizontalPadding + cellWidth * (column + 0.5f);
+            var y = rect.yMax - verticalPadding - cellHeight * (row + 0.5f);
+            var jitter = GetDeterministicPileJitter(index);
+            x += jitter.x * cellWidth * MaterialPileJitterRatio;
+            y += jitter.y * cellHeight * MaterialPileJitterRatio;
 
-        private Vector2 GetPilePosition(int index)
-        {
-            var offsets = new[]
-            {
-                new Vector2(-18f, 72f),
-                new Vector2(16f, 50f),
-                new Vector2(-8f, 28f),
-                new Vector2(24f, 6f),
-                new Vector2(-22f, -16f),
-                new Vector2(10f, -38f),
-                new Vector2(-4f, -60f),
-            };
-
-            var localPoint = offsets[index % offsets.Length] + new Vector2(0f, -Mathf.Floor(index / (float)offsets.Length) * 34f);
+            var localPoint = new Vector2(
+                Mathf.Clamp(x, rect.xMin + horizontalPadding, rect.xMax - horizontalPadding),
+                Mathf.Clamp(y, rect.yMin + verticalPadding, rect.yMax - verticalPadding));
             var worldPoint = materialPile.TransformPoint(localPoint);
             return dragSurface.InverseTransformPoint(worldPoint);
+        }
+
+        private static Vector2 GetDeterministicPileJitter(int index)
+        {
+            var seed = (uint)(index + 1) * 747796405u + 2891336453u;
+            seed = (seed >> ((int)(seed >> 28) + 4)) ^ seed;
+            var x = ((seed & 1023u) / 1023f) * 2f - 1f;
+            seed = seed * 277803737u + 3812015801u;
+            seed = (seed >> ((int)(seed >> 28) + 4)) ^ seed;
+            var y = ((seed & 1023u) / 1023f) * 2f - 1f;
+            return new Vector2(x, y);
         }
 
         private static float GetRandomPileRotation()
