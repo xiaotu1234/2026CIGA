@@ -216,18 +216,16 @@ namespace BrokenAnchor.UI
                 StyleCountdownText(countdownText);
             }
 
-            if (selectedItemInfoText == null)
+            if (selectedItemInfoPanel == null)
             {
-                var parent = riskText == null ? root : riskText.transform.parent as RectTransform;
-                if (parent != null)
-                {
-                    selectedItemInfoPanel = EnsureSelectedItemInfoPanel(parent);
-                    selectedItemInfoText = UIBuilder.CreateText(selectedItemInfoPanel, "SelectedItemInfoText", "", 16, Color.black, TextAnchor.UpperLeft);
-                }
+                Debug.LogWarning("BuildView prefab is missing SelectedItemInfoPanel. Selected item info will be hidden.");
             }
 
-            var fallbackParent = riskText == null ? root : riskText.transform.parent as RectTransform;
-            EnsureSelectedItemInfoPanel(fallbackParent);
+            if (selectedItemInfoText == null)
+            {
+                Debug.LogWarning("BuildView prefab is missing SelectedItemInfoText. Selected item info will be hidden.");
+            }
+
             StyleSelectedItemInfoText();
         }
 
@@ -252,47 +250,6 @@ namespace BrokenAnchor.UI
             outline.effectDistance = new Vector2(3f, -3f);
             outline.useGraphicAlpha = true;
         }
-
-        private RectTransform EnsureSelectedItemInfoPanel(RectTransform parent)
-        {
-            if (parent == null)
-            {
-                return selectedItemInfoPanel;
-            }
-
-            if (selectedItemInfoPanel == null)
-            {
-                selectedItemInfoPanel = UIBuilder.CreateRect(parent, "SelectedItemInfoPanel", new Vector2(0.08f, 0.3f), new Vector2(0.92f, 0.43f), Vector2.zero, Vector2.zero);
-                if (selectedItemInfoText != null)
-                {
-                    selectedItemInfoPanel.SetSiblingIndex(selectedItemInfoText.transform.GetSiblingIndex());
-                }
-            }
-
-            var image = selectedItemInfoPanel.GetComponent<Image>();
-            if (image == null)
-            {
-                image = selectedItemInfoPanel.gameObject.AddComponent<Image>();
-            }
-
-            image.color = new Color(0.92f, 0.95f, 0.9f, 0.95f);
-            ApplySelectedItemInfoPanelLayout();
-            return selectedItemInfoPanel;
-        }
-
-        private void ApplySelectedItemInfoPanelLayout()
-        {
-            if (selectedItemInfoPanel == null)
-            {
-                return;
-            }
-
-            selectedItemInfoPanel.anchorMin = new Vector2(0.08f, 0.7f);
-            selectedItemInfoPanel.anchorMax = new Vector2(0.92f, 0.84f);
-            selectedItemInfoPanel.offsetMin = Vector2.zero;
-            selectedItemInfoPanel.offsetMax = Vector2.zero;
-        }
-
         private void StyleSelectedItemInfoText()
         {
             if (selectedItemInfoText == null)
