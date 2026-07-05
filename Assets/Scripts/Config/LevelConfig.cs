@@ -24,7 +24,8 @@ namespace BrokenAnchor.Config
         public float maxItemSpeed = 0f;
         public float underwaterRightForce = 0f;
         public float fallSpeedSoftLimitMetersPerSecond = 4f;
-        public float surfaceTensionCoefficient = 0.02f;
+        public float waterEntryInitialSpeed = 10f;
+        public float waterSurfaceTensionForce = 2f;
         public float forceCoefficient = 1f;
         public float weightDownForceCoefficient = 0.18f;
         public float waterDragCoefficient = 0.1f;

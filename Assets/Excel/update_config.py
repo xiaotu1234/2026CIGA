@@ -126,7 +126,7 @@ def export_levels(
     formulas_sheet = formulas_workbook["level"]
 
     for row_index in range(2, values_sheet.max_row + 1):
-        values = [clean(values_sheet.cell(row_index, col).value) for col in range(1, 13)]
+        values = [clean(values_sheet.cell(row_index, col).value) for col in range(1, 14)]
         if not any(value is not None for value in values):
             continue
         if values[0] is None:
@@ -147,6 +147,7 @@ def export_levels(
                 "itemWeightCoefficient": values[9],
                 "stormLevel": values[10],
                 "buildTimeSeconds": values[11],
+                "waterSurfaceTensionForce": values[12],
                 "shipSpeedFormula": speed_formula
                 if isinstance(speed_formula, str) and speed_formula.startswith("=")
                 else None,

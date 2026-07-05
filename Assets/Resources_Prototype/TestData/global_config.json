@@ -1,12 +1,11 @@
 {
   "sourceWorkbook": "Assets/Excel/excel.xlsx",
-  "generatedAt": "2026-07-05T01:35:34Z",
+  "generatedAt": "2026-07-05T02:10:41Z",
   "note": "Converted from user-provided Excel and wired into prototype runtime logic.",
   "sourceSheet": "global",
   "parameters": {
     "successDurationSeconds": 15,
     "fallSpeedSoftLimitMetersPerSecond": 3,
-    "surfaceTensionCoefficient": 0.02,
     "forceCoefficient": 1,
     "weightDownForceCoefficient": 0.18,
     "waterDragCoefficient": 0.1,
@@ -17,7 +16,8 @@
     "seabedPhysicsFrictionCoefficient": 0.5,
     "seabedPhysicsBouncinessCoefficient": 0.02,
     "showConnectionHealthDebug": 1,
-    "rigidbodyMassCoefficient": 1
+    "rigidbodyMassCoefficient": 1,
+    "waterEntryInitialSpeed": 10
   },
   "entries": [
     {
@@ -29,11 +29,6 @@
       "key": "fallSpeedSoftLimitMetersPerSecond",
       "description": "掉落速度软上限，单位 m/s。超过后会施加向上阻力。",
       "value": 3
-    },
-    {
-      "key": "surfaceTensionCoefficient",
-      "description": "水面张力系数。控制穿过水面时的竖向水面力。",
-      "value": 0.02
     },
     {
       "key": "forceCoefficient",
@@ -89,6 +84,11 @@
       "key": "rigidbodyMassCoefficient",
       "description": "物品质量系数。物品重量转换为 Unity Rigidbody2D.mass 的全局倍率。",
       "value": 1
+    },
+    {
+      "key": "waterEntryInitialSpeed",
+      "description": "入水初速度。下锚瞬间施加给整体的固定向下速度。",
+      "value": 10
     }
   ]
 }

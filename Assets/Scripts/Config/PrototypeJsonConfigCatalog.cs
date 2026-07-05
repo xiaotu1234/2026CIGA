@@ -96,7 +96,8 @@ namespace BrokenAnchor.Config
                 stormLevel = row.stormLevel,
                 buildTimeSeconds = row.buildTimeSeconds,
                 maxItemSpeed = Mathf.Max(0f, row.shipSpeedDisplay),
-                underwaterRightForce = Mathf.Max(0f, row.baseItemCount)
+                underwaterRightForce = Mathf.Max(0f, row.baseItemCount),
+                waterSurfaceTensionForce = row.waterSurfaceTensionForce > 0f ? row.waterSurfaceTensionForce : defaults.waterSurfaceTensionForce
             };
         }
 
@@ -312,7 +313,7 @@ namespace BrokenAnchor.Config
             var parameters = globalFile.parameters;
             level.stableDuration = parameters.successDurationSeconds > 0f ? parameters.successDurationSeconds : level.stableDuration;
             level.fallSpeedSoftLimitMetersPerSecond = parameters.fallSpeedSoftLimitMetersPerSecond;
-            level.surfaceTensionCoefficient = parameters.surfaceTensionCoefficient;
+            level.waterEntryInitialSpeed = parameters.waterEntryInitialSpeed > 0f ? parameters.waterEntryInitialSpeed : level.waterEntryInitialSpeed;
             level.forceCoefficient = parameters.forceCoefficient;
             level.weightDownForceCoefficient = parameters.weightDownForceCoefficient;
             level.waterDragCoefficient = parameters.waterDragCoefficient;
@@ -387,6 +388,7 @@ namespace BrokenAnchor.Config
             public float itemWeightCoefficient;
             public string stormLevel;
             public float buildTimeSeconds;
+            public float waterSurfaceTensionForce;
         }
 
         [Serializable]
@@ -400,7 +402,7 @@ namespace BrokenAnchor.Config
         {
             public float successDurationSeconds;
             public float fallSpeedSoftLimitMetersPerSecond;
-            public float surfaceTensionCoefficient;
+            public float waterEntryInitialSpeed;
             public float forceCoefficient;
             public float weightDownForceCoefficient;
             public float waterDragCoefficient;
