@@ -32,8 +32,6 @@ namespace BrokenAnchor.Build
         private const float PreviewMinAttachLengthMultiplier = 0.6f;
         private const float RopeMountMinCoverage = 0.35f;
         private const float RopeMountAreaBorderThickness = 3f;
-        private const float RopeMountDetectionWidth = 70f;
-        private const float RopeMountDetectionHeight = 42f;
         private const float MaterialPileHorizontalPadding = 48f;
         private const float MaterialPileVerticalPadding = 52f;
         private const float MaterialPileJitterRatio = 0.22f;
@@ -57,7 +55,6 @@ namespace BrokenAnchor.Build
         private bool warnedMissingRopeMountArea;
         private bool warnedMissingRopeMountFill;
         private bool warnedMissingRopeMountBorders;
-        private int ropeMountAreaRefreshFrames;
         private Action<AnchorBuildResult> onSubmit;
 
         public IReadOnlyList<AnchorPiece> Pieces => pieces;
@@ -88,19 +85,6 @@ namespace BrokenAnchor.Build
             this.onSubmit = onSubmit;
             ResolveRopeMountAreaReferences();
             UpdateRopeMountVisual();
-            ropeMountAreaRefreshFrames = 6;
-        }
-
-        private void LateUpdate()
-        {
-            if (ropeMountAreaRefreshFrames <= 0)
-            {
-                return;
-            }
-
-            ropeMountAreaRefreshFrames--;
-            Canvas.ForceUpdateCanvases();
-            UpdateRopeMountAreaVisualRect(ropeMountAreaRect);
         }
 
         public void PopulateMaterialPile(IReadOnlyList<MaterialConfig> materials)
@@ -774,50 +758,12 @@ namespace BrokenAnchor.Build
 
         private Rect GetRopeMountRect()
         {
-            if (TryGetRopeMountLabelCenter(out var labelCenter))
+            if (ropeMountAreaRect != null)
             {
-                var halfSize = new Vector2(RopeMountDetectionWidth, RopeMountDetectionHeight) * 0.5f;
-                return Rect.MinMaxRect(labelCenter.x - halfSize.x, labelCenter.y - halfSize.y, labelCenter.x + halfSize.x, labelCenter.y + halfSize.y);
+                return GetRectTransformLocalRect(ropeMountAreaRect);
             }
 
             return GetRectTransformLocalRect(ropeMountPoint);
-        }
-
-        private bool TryGetRopeMountLabelCenter(out Vector2 center)
-        {
-            center = default;
-            if (ropeMountPoint == null || dragSurface == null)
-            {
-                return false;
-            }
-
-            var label = ropeMountPoint.Find("Label") as RectTransform;
-            if (label != null && label.gameObject.activeInHierarchy)
-            {
-                center = GetRectTransformLocalRect(label).center;
-                return true;
-            }
-
-            var texts = ropeMountPoint.GetComponentsInChildren<Text>(true);
-            for (var i = 0; i < texts.Length; i++)
-            {
-                var text = texts[i];
-                if (text == null || !text.gameObject.activeInHierarchy)
-                {
-                    continue;
-                }
-
-                var textRect = text.transform as RectTransform;
-                if (textRect == null)
-                {
-                    continue;
-                }
-
-                center = GetRectTransformLocalRect(textRect).center;
-                return true;
-            }
-
-            return false;
         }
 
         private Rect GetRectTransformLocalRect(RectTransform rectTransform)
@@ -924,7 +870,6 @@ namespace BrokenAnchor.Build
             }
 
             ropeMountAreaRect.SetAsFirstSibling();
-            UpdateRopeMountAreaVisualRect(ropeMountAreaRect);
         }
 
         private static void LogMissingPrefabReference(string message, ref bool alreadyWarned)
@@ -936,23 +881,6 @@ namespace BrokenAnchor.Build
 
             alreadyWarned = true;
             Debug.LogWarning(message);
-        }
-
-        private void UpdateRopeMountAreaVisualRect(RectTransform area)
-        {
-            if (area == null || dragSurface == null || ropeMountPoint == null)
-            {
-                return;
-            }
-
-            var mountRect = GetRopeMountRect();
-            var min = (Vector2)ropeMountPoint.InverseTransformPoint(dragSurface.TransformPoint(mountRect.min));
-            var max = (Vector2)ropeMountPoint.InverseTransformPoint(dragSurface.TransformPoint(mountRect.max));
-            area.anchorMin = new Vector2(0.5f, 0.5f);
-            area.anchorMax = new Vector2(0.5f, 0.5f);
-            area.pivot = new Vector2(0.5f, 0.5f);
-            area.anchoredPosition = (min + max) * 0.5f;
-            area.sizeDelta = new Vector2(Mathf.Abs(max.x - min.x), Mathf.Abs(max.y - min.y));
         }
 
         private Vector2 GetPilePosition(int index, int totalCount)
