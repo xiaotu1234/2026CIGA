@@ -16,11 +16,14 @@ namespace BrokenAnchor.Core
         [SerializeField] private ResultView resultPrefab;
         [SerializeField] private AudioClip bgmClip;
 
+        private AudioSource backgroundMusicSource;
+
         private void Awake()
         {
             EnsureCamera();
             EnsureEventSystem();
-            EnsureBackgroundMusic();
+            backgroundMusicSource = EnsureBackgroundMusic();
+            AudioSettingsController.MusicVolumeChanged += OnMusicVolumeChanged;
 
             var canvas = CreateCanvas();
             var flow = gameObject.AddComponent<ViewFlowController>();
@@ -74,6 +77,11 @@ namespace BrokenAnchor.Core
             flow.Show(GameView.MainMenu);
         }
 
+        private void OnDestroy()
+        {
+            AudioSettingsController.MusicVolumeChanged -= OnMusicVolumeChanged;
+        }
+
         private static T CreateView<T>(T prefab, Transform parent, System.Func<Transform, T> fallbackFactory, string viewName)
             where T : Component
         {
@@ -86,12 +94,12 @@ namespace BrokenAnchor.Core
             return fallbackFactory(parent);
         }
 
-        private void EnsureBackgroundMusic()
+        private AudioSource EnsureBackgroundMusic()
         {
             if (bgmClip == null)
             {
                 Debug.LogWarning("BGM clip is not assigned on GameBootstrap.");
-                return;
+                return null;
             }
 
             var existingSource = GameObject.Find("BackgroundMusic")?.GetComponent<AudioSource>();
@@ -99,13 +107,14 @@ namespace BrokenAnchor.Core
             {
                 existingSource.clip = bgmClip;
                 existingSource.loop = true;
+                AudioSettingsController.ApplyMusicVolume(existingSource);
 
                 if (!existingSource.isPlaying)
                 {
                     existingSource.Play();
                 }
 
-                return;
+                return existingSource;
             }
 
             var musicGo = new GameObject("BackgroundMusic");
@@ -116,7 +125,17 @@ namespace BrokenAnchor.Core
             source.loop = true;
             source.playOnAwake = false;
             source.spatialBlend = 0f;
+            AudioSettingsController.ApplyMusicVolume(source);
             source.Play();
+            return source;
+        }
+
+        private void OnMusicVolumeChanged(float volume)
+        {
+            if (backgroundMusicSource != null)
+            {
+                backgroundMusicSource.volume = volume;
+            }
         }
 
         private static void EnsureCamera()

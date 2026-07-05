@@ -5,6 +5,8 @@ namespace BrokenAnchor.UI
 {
     public class BuildHandsOverlay : MonoBehaviour
     {
+        private const int TopSortingOrder = short.MaxValue;
+
         [SerializeField] private RectTransform leftHand;
         [SerializeField] private RectTransform rightHand;
         [SerializeField] private Sprite leftHandSprite;
@@ -19,6 +21,7 @@ namespace BrokenAnchor.UI
         [SerializeField] private float maxLength = 1400f;
 
         private RectTransform selfRect;
+        private Canvas overlayCanvas;
 
         private void Awake()
         {
@@ -33,7 +36,13 @@ namespace BrokenAnchor.UI
 
         private void Update()
         {
+            EnsureTopLayer();
             UpdateHands();
+        }
+
+        private void LateUpdate()
+        {
+            EnsureTopLayer();
         }
 
         private void EnsureSetup()
@@ -49,6 +58,21 @@ namespace BrokenAnchor.UI
 
             ConfigureHand(leftHand, leftHandSprite, leftWidth);
             ConfigureHand(rightHand, rightHandSprite, rightWidth);
+            EnsureTopLayer();
+        }
+
+        private void EnsureTopLayer()
+        {
+            transform.SetAsLastSibling();
+
+            overlayCanvas = overlayCanvas != null ? overlayCanvas : GetComponent<Canvas>();
+            if (overlayCanvas == null)
+            {
+                overlayCanvas = gameObject.AddComponent<Canvas>();
+            }
+
+            overlayCanvas.overrideSorting = true;
+            overlayCanvas.sortingOrder = TopSortingOrder;
         }
 
         private RectTransform FindHand(string handName)

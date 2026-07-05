@@ -45,6 +45,7 @@ namespace BrokenAnchor.Simulation
         private RectTransform anchor;
         private RectTransform rope;
         private RectTransform dangerZoneIndicator;
+        private Text countdownText;
         private Text stageText;
         private Text metricText;
         private Slider progressSlider;
@@ -151,6 +152,7 @@ namespace BrokenAnchor.Simulation
             RectTransform ship,
             RectTransform anchor,
             RectTransform rope,
+            Text countdownText,
             Text stageText,
             Text metricText,
             Slider progressSlider,
@@ -166,6 +168,7 @@ namespace BrokenAnchor.Simulation
                 dangerZoneIndicator = anchor.Find("DangerZone") as RectTransform;
             }
 
+            this.countdownText = countdownText;
             this.stageText = stageText;
             this.metricText = metricText;
             if (this.metricText != null)
@@ -1105,6 +1108,7 @@ namespace BrokenAnchor.Simulation
 
         private void UpdateMetrics(float remainingStageTime)
         {
+            UpdateCountdownText(remainingStageTime);
             metricText.text =
                 $"\u5371\u9669\u533a\u5269\u4f59\u8ddd\u79bb\uff1a{remainingDistance:0.0} m\n" +
                 $"\u8239\u901f\uff1a{shipVelocity:0.0} m/s\n" +
@@ -1113,6 +1117,17 @@ namespace BrokenAnchor.Simulation
                 $"\u6d77\u5e95\u63a5\u89e6\uff1a{CountSeabedContacts()} \u4e2a\u90e8\u4ef6\n" +
                 $"\u7a33\u8239\u5269\u4f59\uff1a{Mathf.Max(0f, remainingStageTime):0.0} s\n\n" +
                 BuildJointHealthDebugText();
+        }
+
+        private void UpdateCountdownText(float remainingStageTime)
+        {
+            if (countdownText == null)
+            {
+                return;
+            }
+
+            var seconds = Mathf.CeilToInt(Mathf.Max(0f, remainingStageTime));
+            countdownText.text = $"\u98ce\u66b4\u505c\u606f\u5012\u8ba1\u65f6\uff1a{seconds / 60:00}:{seconds % 60:00}";
         }
 
         private string BuildJointHealthDebugText()
@@ -1600,13 +1615,7 @@ namespace BrokenAnchor.Simulation
 
         private static GameObject LoadPiecePrefab(string assetPath)
         {
-#if UNITY_EDITOR
-            if (!string.IsNullOrEmpty(assetPath))
-            {
-                return UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-            }
-#endif
-            return null;
+            return PiecePrefabCatalog.LoadPrefab(assetPath);
         }
 
         private Text GetOrCreateSimLabel(RectTransform rect, string text)

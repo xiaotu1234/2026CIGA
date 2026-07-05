@@ -330,6 +330,11 @@ namespace BrokenAnchor.Config
         private static bool TryLoadJson(string fileName, out string json)
         {
             json = null;
+            if (RuntimeAssetCatalog.TryGetJsonText(fileName, out json))
+            {
+                return true;
+            }
+
             var path = Path.Combine(Application.dataPath, TestDataFolder, fileName);
             if (!File.Exists(path))
             {

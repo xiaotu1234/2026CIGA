@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using BrokenAnchor.Core;
 
 namespace BrokenAnchor.Pieces
 {
@@ -41,7 +42,7 @@ namespace BrokenAnchor.Pieces
                 audioSource = GetComponent<AudioSource>();
             }
 
-            audioSource.PlayOneShot(clip, volume);
+            audioSource.PlayOneShot(clip, volume * AudioSettingsController.VoiceVolume);
         }
     }
 }
