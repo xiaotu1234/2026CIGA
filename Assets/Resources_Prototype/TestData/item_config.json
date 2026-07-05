@@ -1,6 +1,6 @@
 {
   "sourceWorkbook": "Assets/Excel/excel.xlsx",
-  "generatedAt": "2026-07-05T03:43:32Z",
+  "generatedAt": "2026-07-05T04:36:47Z",
   "note": "Item source weight is stored in kilograms and used directly by gameplay and UI.",
   "sourceSheet": "item",
   "columns": [
@@ -54,7 +54,7 @@
       "itemId": 1,
       "itemName": "扎小人",
       "materialName": "木头",
-      "prefab": "huh",
+      "prefab": "xiaoren",
       "weightKg": 0.2,
       "defense": 105,
       "health": 10,
@@ -86,7 +86,7 @@
       "health": 60,
       "sizeFactorReference": 6,
       "guaranteedSpawnCount": 0,
-      "randomWeight": 176,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
@@ -106,7 +106,7 @@
       "itemId": 5,
       "itemName": "旧水管（弯、长）",
       "materialName": "金属",
-      "prefab": "xiaobu",
+      "prefab": "shuiguan2",
       "weightKg": 0.73,
       "defense": 416,
       "health": 24,
@@ -125,7 +125,7 @@
       "health": 12,
       "sizeFactorReference": 2,
       "guaranteedSpawnCount": 1,
-      "randomWeight": 285,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
@@ -138,7 +138,7 @@
       "health": 24,
       "sizeFactorReference": 4,
       "guaranteedSpawnCount": 1,
-      "randomWeight": 256,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
@@ -151,7 +151,7 @@
       "health": 6,
       "sizeFactorReference": 3,
       "guaranteedSpawnCount": 0,
-      "randomWeight": 265,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
@@ -177,7 +177,7 @@
       "health": 12,
       "sizeFactorReference": 2,
       "guaranteedSpawnCount": 0,
-      "randomWeight": 285,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
@@ -190,7 +190,7 @@
       "health": 4,
       "sizeFactorReference": 1,
       "guaranteedSpawnCount": 0,
-      "randomWeight": 331,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
@@ -203,7 +203,7 @@
       "health": 12,
       "sizeFactorReference": 3,
       "guaranteedSpawnCount": 0,
-      "randomWeight": 285,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
@@ -281,7 +281,7 @@
       "health": 30,
       "sizeFactorReference": 1,
       "guaranteedSpawnCount": 0,
-      "randomWeight": 122,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
@@ -294,7 +294,7 @@
       "health": 8,
       "sizeFactorReference": 2,
       "guaranteedSpawnCount": 0,
-      "randomWeight": 407,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
@@ -307,7 +307,7 @@
       "health": 30,
       "sizeFactorReference": 5,
       "guaranteedSpawnCount": 0,
-      "randomWeight": 197,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
@@ -320,14 +320,14 @@
       "health": 6,
       "sizeFactorReference": 2,
       "guaranteedSpawnCount": 0,
-      "randomWeight": 309,
+      "randomWeight": 0,
       "unlockLevel": 1
     },
     {
       "itemId": 22,
       "itemName": "浮木",
       "materialName": "木头",
-      "prefab": "shuiguan",
+      "prefab": "fumu",
       "weightKg": 0.42,
       "defense": 105,
       "health": 15,
@@ -340,7 +340,7 @@
       "itemId": 23,
       "itemName": "湿透的报纸",
       "materialName": "纸张",
-      "prefab": "xiaobu",
+      "prefab": "baozhi",
       "weightKg": 0.02,
       "defense": 21,
       "health": 2,
@@ -353,7 +353,7 @@
       "itemId": 24,
       "itemName": "破损的CD",
       "materialName": "塑料",
-      "prefab": "xiaomei",
+      "prefab": "brokencd",
       "weightKg": 0.07,
       "defense": 60,
       "health": 4,
@@ -366,7 +366,7 @@
       "itemId": 25,
       "itemName": "香蕉皮",
       "materialName": "生物",
-      "prefab": "huh",
+      "prefab": "banana",
       "weightKg": 0.12,
       "defense": 84,
       "health": 8,
@@ -379,7 +379,7 @@
       "itemId": 26,
       "itemName": "啤酒瓶",
       "materialName": "玻璃",
-      "prefab": "man",
+      "prefab": "pijiu",
       "weightKg": 0.42,
       "defense": 13,
       "health": 9,
@@ -481,7 +481,7 @@
     },
     {
       "itemId": 34,
-      "itemName": "塞罗眼睛",
+      "itemName": "塞罗眼镜",
       "materialName": "神秘物质",
       "prefab": "seruo",
       "weightKg": 0.12,
