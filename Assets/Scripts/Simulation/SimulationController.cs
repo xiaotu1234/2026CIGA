@@ -136,8 +136,10 @@ namespace BrokenAnchor.Simulation
         private const float SeabedContactPadding = 14f;
         private const int SeabedContactSampleCount = 3;
         private const float PieceColliderContactSkin = 1f;
-        private const float SeabedSpawnPadding = 360f;
-        private const float SeabedDespawnPadding = 260f;
+        private const float SeabedLeftSpawnPadding = 360f;
+        private const float SeabedRightSpawnPadding = 900f;
+        private const float SeabedLeftDespawnPadding = 260f;
+        private const float SeabedRightDespawnPadding = 960f;
         private const float SeabedMinY = -1172f;
         private const float SeabedMaxY = -890f;
         private const float SeabedMaxStepY = 14f;
@@ -1701,8 +1703,8 @@ namespace BrokenAnchor.Simulation
             var bounds = GetVisibleWorldBounds();
             seabedNoiseSeed = UnityEngine.Random.Range(0f, 10000f);
             seabedSampleOffsetX = 0f;
-            var nextX = bounds.xMin - SeabedSpawnPadding;
-            while (nextX < bounds.xMax + SeabedSpawnPadding)
+            var nextX = bounds.xMin - SeabedLeftSpawnPadding;
+            while (nextX < bounds.xMax + SeabedRightSpawnPadding)
             {
                 var lastSegment = GetRightmostSeabedSegment();
                 AddSeabedSegment(nextX, lastSegment == null ? (float?)null : lastSegment.end.y, null);
@@ -1724,13 +1726,13 @@ namespace BrokenAnchor.Simulation
                 segment.start.x -= dx;
                 segment.end.x -= dx;
 
-                if (segment.end.x < GetVisibleWorldBounds().xMin - SeabedDespawnPadding)
+                if (segment.end.x < GetVisibleWorldBounds().xMin - SeabedLeftDespawnPadding)
                 {
                     RemoveSeabedSegmentAt(i);
                     continue;
                 }
 
-                if (segment.start.x > GetVisibleWorldBounds().xMax + SeabedDespawnPadding)
+                if (segment.start.x > GetVisibleWorldBounds().xMax + SeabedRightDespawnPadding)
                 {
                     RemoveSeabedSegmentAt(i);
                 }
@@ -1746,8 +1748,8 @@ namespace BrokenAnchor.Simulation
             var bounds = GetVisibleWorldBounds();
             if (seabedSegments.Count == 0)
             {
-                var nextX = bounds.xMin - SeabedSpawnPadding;
-                while (nextX < bounds.xMax + SeabedSpawnPadding)
+                var nextX = bounds.xMin - SeabedLeftSpawnPadding;
+                while (nextX < bounds.xMax + SeabedRightSpawnPadding)
                 {
                     var lastSegment = GetRightmostSeabedSegment();
                     AddSeabedSegment(nextX, lastSegment == null ? (float?)null : lastSegment.end.y, null);
@@ -1759,7 +1761,7 @@ namespace BrokenAnchor.Simulation
 
             var rightSegment = GetRightmostSeabedSegment();
             var rightEdge = rightSegment == null ? bounds.xMin : rightSegment.end.x;
-            while (rightSegment != null && rightEdge < bounds.xMax + SeabedSpawnPadding)
+            while (rightSegment != null && rightEdge < bounds.xMax + SeabedRightSpawnPadding)
             {
                 AddSeabedSegment(rightEdge, rightSegment.end.y, null);
                 rightSegment = GetRightmostSeabedSegment();
@@ -1768,7 +1770,7 @@ namespace BrokenAnchor.Simulation
 
             var leftSegment = GetLeftmostSeabedSegment();
             var leftEdge = leftSegment == null ? bounds.xMin : leftSegment.start.x;
-            while (leftSegment != null && leftEdge > bounds.xMin - SeabedSpawnPadding)
+            while (leftSegment != null && leftEdge > bounds.xMin - SeabedLeftSpawnPadding)
             {
                 leftEdge -= SeabedSegmentLength;
                 AddSeabedSegment(leftEdge, null, leftSegment.start.y);
