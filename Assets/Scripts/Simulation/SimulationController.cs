@@ -63,7 +63,6 @@ namespace BrokenAnchor.Simulation
         private float simulationElapsed;
         private float shipVelocity;
         private float anchorMotionPixelsPerSecond;
-        private float dangerBoundaryX;
         private float shipTravelPixelsPerMeter = 4f;
         private float shipStartX;
         private float cameraOffsetX;
@@ -77,7 +76,7 @@ namespace BrokenAnchor.Simulation
         private readonly List<Vector2> seabedFillPoints = new List<Vector2>();
 
         private const float WaterEntryDuration = 0.8f;
-        private const float DangerZoneLeftAnchor = 0.88f;
+        private const float DangerZoneVisiblePadding = 80f;
         private const float AnchorScale = 0.55f;
         private const float PhysicsScale = 0.012f;
         private const float InversePhysicsScale = 1f / PhysicsScale;
@@ -160,6 +159,11 @@ namespace BrokenAnchor.Simulation
             this.anchor = anchor;
             this.rope = rope;
             dangerZoneIndicator = playArea != null ? playArea.Find("DangerZone") as RectTransform : null;
+            if (dangerZoneIndicator == null && anchor != null)
+            {
+                dangerZoneIndicator = anchor.Find("DangerZone") as RectTransform;
+            }
+
             this.stageText = stageText;
             this.metricText = metricText;
             if (this.metricText != null)
@@ -228,6 +232,7 @@ namespace BrokenAnchor.Simulation
                 SyncVisualsFromPhysics();
                 UpdateSeabedTerrain(deltaTime);
                 UpdateCameraFollow(deltaTime);
+                UpdateDangerZoneVisibility();
                 DrawRope();
                 UpdateMetrics(Mathf.Max(0f, level.stableDuration - simulationElapsed));
                 yield return null;
@@ -938,14 +943,12 @@ namespace BrokenAnchor.Simulation
         private void ConfigureDangerZoneMetrics()
         {
             Canvas.ForceUpdateCanvases();
-            var playAreaWidth = playArea != null && playArea.rect.width > 0f ? playArea.rect.width : 900f;
-            dangerBoundaryX = (DangerZoneLeftAnchor - 0.5f) * playAreaWidth;
-
             var shipRightEdge = GetShipRightEdge();
-            var visualTravelToDanger = Mathf.Max(80f, dangerBoundaryX - shipRightEdge);
-            shipTravelPixelsPerMeter = visualTravelToDanger / Mathf.Max(1f, level.dangerZoneDistance);
+            shipTravelPixelsPerMeter = AnchorSpeedPixelsPerMeter;
             shipStartX = ship.anchoredPosition.x;
+            ConfigureDangerZoneLine();
             UpdateShipPositionFromRemainingDistance();
+            UpdateDangerZonePosition();
             UpdateDangerZoneVisibility();
         }
 
@@ -958,7 +961,7 @@ namespace BrokenAnchor.Simulation
             }
 
             var revealDistance = Mathf.Min(DangerZoneRevealDistance, level.dangerZoneDistance * 0.25f);
-            SetDangerZoneVisible(remainingDistance <= revealDistance);
+            SetDangerZoneVisible(remainingDistance <= revealDistance || IsDangerZoneLineNearView());
         }
 
         private void SetDangerZoneVisible(bool visible)
@@ -973,6 +976,54 @@ namespace BrokenAnchor.Simulation
         {
             var traveledDistance = level.dangerZoneDistance - remainingDistance;
             ship.anchoredPosition = new Vector2(shipStartX + traveledDistance * shipTravelPixelsPerMeter, 150f + cameraOffsetY);
+        }
+
+        private void ConfigureDangerZoneLine()
+        {
+            if (dangerZoneIndicator == null)
+            {
+                return;
+            }
+
+            if (anchor != null && dangerZoneIndicator.parent != anchor)
+            {
+                dangerZoneIndicator.SetParent(anchor, false);
+                dangerZoneIndicator.SetAsFirstSibling();
+            }
+
+            var lineHeight = playArea != null && playArea.rect.height > 0f ? playArea.rect.height + DangerZoneVisiblePadding * 2f : 680f;
+            var regionWidth = playArea != null && playArea.rect.width > 0f ? playArea.rect.width + DangerZoneVisiblePadding * 2f : 1060f;
+            dangerZoneIndicator.anchorMin = new Vector2(0.5f, 0.5f);
+            dangerZoneIndicator.anchorMax = new Vector2(0.5f, 0.5f);
+            dangerZoneIndicator.pivot = new Vector2(0f, 0.5f);
+            dangerZoneIndicator.sizeDelta = new Vector2(regionWidth, lineHeight);
+        }
+
+        private void UpdateDangerZonePosition()
+        {
+            if (dangerZoneIndicator == null)
+            {
+                return;
+            }
+
+            dangerZoneIndicator.anchoredPosition = new Vector2(GetDangerBoundaryScreenX() - cameraOffsetX, -cameraOffsetY);
+        }
+
+        private float GetDangerBoundaryScreenX()
+        {
+            return GetRopeEndPosition().x + remainingDistance * shipTravelPixelsPerMeter;
+        }
+
+        private bool IsDangerZoneLineNearView()
+        {
+            if (playArea == null)
+            {
+                return true;
+            }
+
+            var halfWidth = playArea.rect.width * 0.5f;
+            var screenX = GetDangerBoundaryScreenX();
+            return screenX >= -halfWidth - DangerZoneVisiblePadding && screenX <= halfWidth + DangerZoneVisiblePadding;
         }
 
         private float GetShipRightEdge()
@@ -1934,6 +1985,7 @@ namespace BrokenAnchor.Simulation
                 water.anchoredPosition = new Vector2(0f, cameraOffsetY);
             }
 
+            UpdateDangerZonePosition();
             EnsureSeabedCoverage();
             RefreshSeabedCollider();
             RefreshSeabedFill();
