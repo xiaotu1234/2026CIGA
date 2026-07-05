@@ -728,6 +728,7 @@ namespace BrokenAnchor.Simulation
             }
 
             debris.detachedDebris = true;
+            PlayDetachedPieceAudio(debris);
             for (var i = debris.joints.Count - 1; i >= 0; i--)
             {
                 if (debris.joints[i] != null)
@@ -754,6 +755,20 @@ namespace BrokenAnchor.Simulation
             }
 
             StartCoroutine(RemoveDebrisAfterFlight(debris));
+        }
+
+        private static void PlayDetachedPieceAudio(SimulatedPiece debris)
+        {
+            var audio = debris.rect == null ? null : debris.rect.GetComponent<PieceInteractionAudio>();
+            if (audio == null && debris.source != null)
+            {
+                audio = debris.source.GetComponent<PieceInteractionAudio>();
+            }
+
+            if (audio != null)
+            {
+                audio.PlayDetachedOnce();
+            }
         }
 
         private IEnumerator RemoveDebrisAfterFlight(SimulatedPiece debris)
