@@ -21,6 +21,8 @@ namespace BrokenAnchor.UI
         private Action onRetry;
         private Action onBackBuild;
         private Action onMenu;
+        private bool hasPendingResultVideo;
+        private bool pendingResultVideoSuccess;
 
         public static ResultView Create(Transform parent)
         {
@@ -73,7 +75,7 @@ namespace BrokenAnchor.UI
         public void Bind(SimulationResult result)
         {
             ResolveReferences();
-            PlayResultVideo(result.success);
+            QueueResultVideo(result.success);
 
             if (result.success)
             {
@@ -100,6 +102,17 @@ namespace BrokenAnchor.UI
             detailText.text = text;
         }
 
+        private void OnEnable()
+        {
+            if (!hasPendingResultVideo)
+            {
+                return;
+            }
+
+            ResolveReferences();
+            PlayResultVideo(pendingResultVideoSuccess);
+        }
+
         private void OnDisable()
         {
             if (resultVideoPlayer == null)
@@ -107,8 +120,20 @@ namespace BrokenAnchor.UI
                 return;
             }
 
-            resultVideoPlayer.prepareCompleted -= OnResultVideoPrepared;
             resultVideoPlayer.Stop();
+        }
+
+        private void QueueResultVideo(bool success)
+        {
+            hasPendingResultVideo = true;
+            pendingResultVideoSuccess = success;
+
+            if (!isActiveAndEnabled)
+            {
+                return;
+            }
+
+            PlayResultVideo(success);
         }
 
         private void PlayResultVideo(bool success)
@@ -134,28 +159,39 @@ namespace BrokenAnchor.UI
                 return;
             }
 
-            if (resultVideoImage != null)
-            {
-                resultVideoImage.enabled = true;
-                resultVideoImage.texture = null;
-            }
-
             resultVideoPlayer.Stop();
             resultVideoPlayer.clip = clip;
             resultVideoPlayer.isLooping = true;
-            resultVideoPlayer.prepareCompleted -= OnResultVideoPrepared;
-            resultVideoPlayer.prepareCompleted += OnResultVideoPrepared;
-            resultVideoPlayer.Prepare();
-        }
+            resultVideoPlayer.playOnAwake = false;
+            resultVideoPlayer.waitForFirstFrame = true;
 
-        private void OnResultVideoPrepared(VideoPlayer player)
-        {
-            if (resultVideoImage != null)
+            if (resultVideoPlayer.targetTexture != null)
             {
-                resultVideoImage.texture = player.texture;
+                resultVideoPlayer.renderMode = VideoRenderMode.RenderTexture;
             }
 
-            player.Play();
+            ClearResultVideoTexture();
+            if (resultVideoImage != null)
+            {
+                resultVideoImage.texture = resultVideoPlayer.targetTexture;
+                resultVideoImage.enabled = true;
+            }
+
+            resultVideoPlayer.Play();
+        }
+
+        private void ClearResultVideoTexture()
+        {
+            var targetTexture = resultVideoPlayer == null ? null : resultVideoPlayer.targetTexture;
+            if (targetTexture == null)
+            {
+                return;
+            }
+
+            var previous = RenderTexture.active;
+            RenderTexture.active = targetTexture;
+            GL.Clear(true, true, Color.clear);
+            RenderTexture.active = previous;
         }
 
         private void BindGeneratedButtonClickEvents()
