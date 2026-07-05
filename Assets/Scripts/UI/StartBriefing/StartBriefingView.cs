@@ -348,13 +348,7 @@ namespace BrokenAnchor.UI
 
         private static GameObject LoadPiecePrefab(string assetPath)
         {
-#if UNITY_EDITOR
-            if (!string.IsNullOrEmpty(assetPath))
-            {
-                return UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-            }
-#endif
-            return null;
+            return PiecePrefabCatalog.LoadPrefab(assetPath);
         }
 
         private void BindGeneratedButtonClickEvents()

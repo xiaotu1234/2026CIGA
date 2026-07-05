@@ -14,6 +14,7 @@ namespace BrokenAnchor.UI
         private RectTransform ship;
         private RectTransform anchor;
         private RectTransform rope;
+        private Text countdownText;
         private Text stageText;
         private Text metricText;
         private Slider progress;
@@ -29,6 +30,13 @@ namespace BrokenAnchor.UI
             title.rectTransform.anchorMax = new Vector2(0.35f, 0.98f);
             title.rectTransform.offsetMin = Vector2.zero;
             title.rectTransform.offsetMax = Vector2.zero;
+
+            view.countdownText = UIBuilder.CreateText(root, "CountdownText", "", 40, Color.red, TextAnchor.MiddleCenter);
+            view.countdownText.rectTransform.anchorMin = new Vector2(0.35f, 0.845f);
+            view.countdownText.rectTransform.anchorMax = new Vector2(0.65f, 0.905f);
+            view.countdownText.rectTransform.offsetMin = Vector2.zero;
+            view.countdownText.rectTransform.offsetMax = Vector2.zero;
+            StyleCountdownText(view.countdownText);
 
             view.playArea = UIBuilder.CreateRect(root, "PlayArea", new Vector2(0.04f, 0.13f), new Vector2(0.72f, 0.88f), Vector2.zero, Vector2.zero);
             view.playArea.gameObject.AddComponent<Image>().color = new Color(0.04f, 0.15f, 0.22f, 1f);
@@ -67,7 +75,7 @@ namespace BrokenAnchor.UI
             view.progress = CreateProgressSlider(root, "ShipDangerProgress", new Vector2(0.48f, 0.925f), new Vector2(0.72f, 0.955f));
 
             view.controller = root.gameObject.AddComponent<SimulationController>();
-            view.controller.Initialize(view.playArea, view.ship, view.anchor, view.rope, view.stageText, view.metricText, view.progress, null);
+            view.controller.Initialize(view.playArea, view.ship, view.anchor, view.rope, view.countdownText, view.stageText, view.metricText, view.progress, null);
             return view;
         }
 
@@ -76,7 +84,7 @@ namespace BrokenAnchor.UI
             ResolveReferences();
             ClearAnchorChildren();
 
-            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, progress, onFinished);
+            controller.Initialize(playArea, ship, anchor, rope, countdownText, stageText, metricText, progress, onFinished);
             controller.StartSimulation(build, level);
         }
 
@@ -108,6 +116,8 @@ namespace BrokenAnchor.UI
             ship = ship != null ? ship : FindChildComponent<RectTransform>("Ship");
             anchor = anchor != null ? anchor : FindChildComponent<RectTransform>("Anchor");
             rope = rope != null ? rope : FindChildComponent<RectTransform>("Rope");
+            countdownText = countdownText != null ? countdownText : FindChildComponent<Text>("CountdownText");
+            EnsureCountdownText();
             stageText = stageText != null ? stageText : FindChildComponent<Text>("StageText");
             metricText = metricText != null ? metricText : FindChildComponent<Text>("MetricText");
             progress = progress != null ? progress : FindChildComponent<Slider>("DangerProgress");
@@ -129,7 +139,46 @@ namespace BrokenAnchor.UI
 
         private void InitializeController(Action<SimulationResult> onFinished)
         {
-            controller.Initialize(playArea, ship, anchor, rope, stageText, metricText, progress, onFinished);
+            controller.Initialize(playArea, ship, anchor, rope, countdownText, stageText, metricText, progress, onFinished);
+        }
+
+        private void EnsureCountdownText()
+        {
+            if (countdownText != null)
+            {
+                StyleCountdownText(countdownText);
+                return;
+            }
+
+            var rect = UIBuilder.CreateText(transform, "CountdownText", "", 40, Color.red, TextAnchor.MiddleCenter);
+            rect.rectTransform.anchorMin = new Vector2(0.35f, 0.845f);
+            rect.rectTransform.anchorMax = new Vector2(0.65f, 0.905f);
+            rect.rectTransform.offsetMin = Vector2.zero;
+            rect.rectTransform.offsetMax = Vector2.zero;
+            StyleCountdownText(rect);
+            countdownText = rect;
+        }
+
+        private static void StyleCountdownText(Text text)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            text.fontSize = 40;
+            text.color = Color.red;
+            text.alignment = TextAnchor.MiddleCenter;
+
+            var outline = text.GetComponent<Outline>();
+            if (outline == null)
+            {
+                outline = text.gameObject.AddComponent<Outline>();
+            }
+
+            outline.effectColor = Color.black;
+            outline.effectDistance = new Vector2(3f, -3f);
+            outline.useGraphicAlpha = true;
         }
 
         private static void CreateBand(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Color color)
