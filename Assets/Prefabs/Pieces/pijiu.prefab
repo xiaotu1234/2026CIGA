@@ -94,7 +94,7 @@ GameObject:
   - component: {fileID: 8677382695429463261}
   - component: {fileID: 1263235665641088649}
   m_Layer: 0
-  m_Name: huangyou
+  m_Name: pijiu
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -109,7 +109,7 @@ RectTransform:
   m_GameObject: {fileID: 2520410531213101379}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.15, y: 0.15, z: 0.21428573}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.71428573}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1245900920209090695}
@@ -187,8 +187,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config:
-    id: huangyou
-    displayName: "\u9EC4\u6CB9"
+    id: pijiu
+    displayName: "\u5564\u9152\u74F6"
     materialName: 
     size: {x: 96, y: 96}
     weight: 54
@@ -202,7 +202,7 @@ MonoBehaviour:
     gripCoeff: 1.2
     color: {r: 0.74, g: 0.78, b: 0.78, a: 1}
     hasHookShape: 1
-    prefabAssetPath: Assets/Prefabs/Pieces/huangyou.prefab
+    prefabAssetPath: Assets/Prefabs/Pieces/pijiu.prefab
 --- !u!60 &1263235665641088649
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -247,14 +247,14 @@ PolygonCollider2D:
   m_AutoTiling: 0
   m_Points:
     m_Paths:
-    - - {x: -9.290481, y: 139.41568}
-      - {x: 92.59127, y: 114.84545}
-      - {x: 175.3952, y: 52.310703}
-      - {x: 175.8019, y: -74.0396}
-      - {x: -171.30513, y: -131.65646}
-      - {x: -173.03629, y: -5.0430107}
-      - {x: -93.95151, y: 62.86947}
-      - {x: -47.561516, y: 101.84136}
+    - - {x: -22.030697, y: 129.76921}
+      - {x: 13.031776, y: 134.01573}
+      - {x: 23.980837, y: 39.167656}
+      - {x: 42.983635, y: 15.6936455}
+      - {x: 44.774323, y: -131.30678}
+      - {x: -48.48842, y: -126.675835}
+      - {x: -47.1624, y: 16.956034}
+      - {x: -29.842312, y: 47.915623}
   m_UseDelaunayMesh: 0
 --- !u!1 &7799550498348629064
 GameObject:
@@ -291,7 +291,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 2, y: 2}
-  m_SizeDelta: {x: 900, y: 685}
+  m_SizeDelta: {x: 298, y: 708}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3816133095320695358
 CanvasRenderer:
@@ -321,7 +321,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 2800000, guid: fa2d174b22bff1840bcbcdaf3b077e7f, type: 3}
+  m_Texture: {fileID: 2800000, guid: 7f8e52a11e720084a9b3e1c793a3dff7, type: 3}
   m_UVRect:
     serializedVersion: 2
     x: 0

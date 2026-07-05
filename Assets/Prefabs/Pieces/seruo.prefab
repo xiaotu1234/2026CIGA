@@ -187,8 +187,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config:
-    id: man
-    displayName: "\u51B0\u7EA2\u8336"
+    id: seruo
+    displayName: "\u8D5B\u7F57\u773C\u955C"
     materialName: 
     size: {x: 96, y: 96}
     weight: 54

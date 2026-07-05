@@ -41,7 +41,7 @@ namespace BrokenAnchor.UI
             view.materialText.rectTransform.offsetMin = Vector2.zero;
             view.materialText.rectTransform.offsetMax = Vector2.zero;
 
-            view.materialIconRoot = UIBuilder.CreateRect(root, "MaterialIconRoot", new Vector2(0.56f, 0.32f), new Vector2(0.9f, 0.72f), Vector2.zero, Vector2.zero);
+            view.materialIconRoot = UIBuilder.CreateRect(root, "MaterialIconRoot", new Vector2(0.56f, 0.24f), new Vector2(0.9f, 0.72f), Vector2.zero, Vector2.zero);
 
             view.startButton = UIBuilder.CreateButton(root, "StartBuildButton", "开始拼装", null);
             view.startButton.GetComponent<RectTransform>().anchorMin = new Vector2(0.68f, 0.14f);
@@ -142,12 +142,11 @@ namespace BrokenAnchor.UI
             }
 
             var cellHeight = (areaSize.y - gap * (rows - 1)) / rows;
-            var cellSize = Mathf.Clamp(cellHeight, 28f, 52f);
+            var cellSize = Mathf.Clamp(cellHeight * 1.5f, 42f, 78f);
             var targetShortSide = cellSize * 0.78f;
             var maxLongSide = cellSize * 1.05f;
-            var totalHeight = rows * cellSize + (rows - 1) * gap;
             const float startX = 0f;
-            var startY = -(areaSize.y - totalHeight) * 0.5f;
+            const float startY = 0f;
 
             for (var i = 0; i < materials.Count; i++)
             {
@@ -266,7 +265,7 @@ namespace BrokenAnchor.UI
                 return;
             }
 
-            materialIconRoot = UIBuilder.CreateRect(root, "MaterialIconRoot", new Vector2(0.56f, 0.32f), new Vector2(0.9f, 0.72f), Vector2.zero, Vector2.zero);
+            materialIconRoot = UIBuilder.CreateRect(root, "MaterialIconRoot", new Vector2(0.56f, 0.24f), new Vector2(0.9f, 0.72f), Vector2.zero, Vector2.zero);
         }
 
         private void ConfigureMaterialPreviewLayout()
@@ -282,7 +281,7 @@ namespace BrokenAnchor.UI
             EnsureMaterialIconRoot();
             if (materialIconRoot != null)
             {
-                materialIconRoot.anchorMin = new Vector2(0.56f, 0.32f);
+                materialIconRoot.anchorMin = new Vector2(0.56f, 0.24f);
                 materialIconRoot.anchorMax = new Vector2(0.9f, 0.72f);
                 materialIconRoot.offsetMin = Vector2.zero;
                 materialIconRoot.offsetMax = Vector2.zero;
