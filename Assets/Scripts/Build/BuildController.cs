@@ -42,6 +42,7 @@ namespace BrokenAnchor.Build
         private RectTransform materialPile;
         private Text riskText;
         private Text statusText;
+        private Text selectedItemInfoText;
         private AttachConfig attachConfig;
         private AnchorPiece selectedPiece;
         private AnchorPiece ropeTiePiece;
@@ -61,6 +62,7 @@ namespace BrokenAnchor.Build
             RectTransform materialPile,
             Text riskText,
             Text statusText,
+            Text selectedItemInfoText,
             AttachConfig attachConfig,
             Action<AnchorBuildResult> onSubmit)
         {
@@ -71,6 +73,7 @@ namespace BrokenAnchor.Build
             this.materialPile = materialPile;
             this.riskText = riskText;
             this.statusText = statusText;
+            this.selectedItemInfoText = selectedItemInfoText;
             this.attachConfig = attachConfig;
             this.onSubmit = onSubmit;
             EnsureRopeMountAreaVisual();
@@ -108,6 +111,7 @@ namespace BrokenAnchor.Build
 
             UpdateRisks();
             UpdateStatus();
+            UpdateSelectedItemInfo();
         }
 
         public void RefreshPiecePlacement(AnchorPiece piece)
@@ -226,6 +230,7 @@ namespace BrokenAnchor.Build
             }
 
             UpdateStatus();
+            UpdateSelectedItemInfo();
         }
 
         public void RotateSelected()
@@ -268,6 +273,7 @@ namespace BrokenAnchor.Build
             UpdateRopeMountVisual();
             UpdateRisks();
             UpdateStatus();
+            UpdateSelectedItemInfo();
         }
 
         public void RefreshConnections()
@@ -313,7 +319,7 @@ namespace BrokenAnchor.Build
         {
             var result = new AnchorBuildResult();
             result.ropeTiePiece = ropeTiePiece;
-            result.isConnected = AttachGraph.IsFullyConnected(pieces, joints);
+            result.isConnected = pieces.Count > 0 && AttachGraph.IsFullyConnected(pieces, joints);
             for (var i = 0; i < pieces.Count; i++)
             {
                 var piece = pieces[i];
@@ -691,6 +697,25 @@ namespace BrokenAnchor.Build
             var selectedName = selectedPiece == null ? "未选择" : selectedPiece.Config.displayName.Replace("\n", " / ");
             var tieName = ropeTiePiece == null ? "未覆盖" : ropeTiePiece.Config.displayName.Replace("\n", " / ");
             statusText.text = $"拼装区 {pieces.Count}/{materialPieces.Count}  连接 {joints.Count}  选中 {selectedName}  挂点 {tieName}";
+        }
+
+        private void UpdateSelectedItemInfo()
+        {
+            if (selectedItemInfoText == null)
+            {
+                return;
+            }
+
+            if (selectedPiece == null)
+            {
+                selectedItemInfoText.text = "选中道具\n未选择";
+                return;
+            }
+
+            var config = selectedPiece.Config;
+            var displayName = string.IsNullOrEmpty(config.displayName) ? config.id : config.displayName.Replace("\n", " / ");
+            var materialName = string.IsNullOrEmpty(config.materialName) ? "未配置" : config.materialName;
+            selectedItemInfoText.text = $"选中道具\n名称：{displayName}\n材质：{materialName}\n重量：{config.weight:0.######} kg";
         }
 
         private void RefreshRopeTiePiece()
@@ -1120,6 +1145,7 @@ namespace BrokenAnchor.Build
             {
                 selectedPiece.SetSelected(false);
                 selectedPiece = null;
+                UpdateSelectedItemInfo();
             }
 
             if (pilePositions.TryGetValue(piece, out var pilePosition))

@@ -17,7 +17,12 @@ namespace BrokenAnchor.Simulation
                 result.reasons.Add("船进入危险区。");
             }
 
-            if (!build.isConnected)
+            var hasAnchorBody = build != null && build.pieces != null && build.pieces.Count > 0;
+            if (!hasAnchorBody)
+            {
+                result.reasons.Add("没有拼装任何材料。");
+            }
+            else if (!build.isConnected)
             {
                 result.reasons.Add("船锚主体未连通。");
             }
@@ -37,7 +42,7 @@ namespace BrokenAnchor.Simulation
                 result.reasons.Add("船锚总重量偏轻。");
             }
 
-            result.success = !result.shipEnteredDangerZone;
+            result.success = !result.shipEnteredDangerZone && hasAnchorBody && build.isConnected;
             result.narrowSuccess = result.success && (remainingDistance < level.dangerZoneDistance * 0.22f || anchorDamage > 0.62f);
 
             if (result.success)

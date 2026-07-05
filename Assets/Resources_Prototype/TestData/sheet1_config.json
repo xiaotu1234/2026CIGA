@@ -1,6 +1,6 @@
 {
-  "sourceWorkbook": "excel.xlsx",
-  "generatedAt": "2026-07-05",
+  "sourceWorkbook": "Assets/Excel/excel.xlsx",
+  "generatedAt": "2026-07-05T01:16:05Z",
   "note": "Converted from user-provided Excel and wired into prototype runtime logic.",
   "sourceSheet": "Sheet1",
   "parameters": {

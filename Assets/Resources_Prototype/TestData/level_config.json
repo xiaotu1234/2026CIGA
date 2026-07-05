@@ -1,6 +1,6 @@
 {
-  "sourceWorkbook": "excel.xlsx",
-  "generatedAt": "2026-07-05",
+  "sourceWorkbook": "Assets/Excel/excel.xlsx",
+  "generatedAt": "2026-07-05T01:16:05Z",
   "note": "Converted from user-provided Excel and wired into prototype runtime logic.",
   "sourceSheet": "level",
   "columns": [
@@ -50,7 +50,7 @@
     },
     {
       "key": "buildTimeSeconds",
-      "sourceHeader": "拼凑时间"
+      "sourceHeader": "拼凑时间（秒）"
     }
   ],
   "levels": [
@@ -59,14 +59,14 @@
       "shipWeightDisplay": 100,
       "initialDistance": 300,
       "shipSpeedDisplay": 60,
-      "basePullForce": 20,
-      "baseItemCount": 6,
+      "basePullForce": 10,
+      "baseItemCount": 0.6,
       "minRandomItemCount": 30,
       "minTotalItemWeight": 30,
-      "recommendedWeightKg": 20,
+      "recommendedWeightKg": 30,
       "itemWeightCoefficient": 1,
       "stormLevel": "低级",
-      "buildTimeSeconds": 300,
+      "buildTimeSeconds": 180,
       "shipSpeedFormula": "=C2/5"
     },
     {
@@ -74,14 +74,14 @@
       "shipWeightDisplay": 120,
       "initialDistance": 360,
       "shipSpeedDisplay": 72,
-      "basePullForce": 22,
-      "baseItemCount": 7,
+      "basePullForce": 12,
+      "baseItemCount": 0.9,
       "minRandomItemCount": 32,
       "minTotalItemWeight": 37,
       "recommendedWeightKg": 25,
       "itemWeightCoefficient": 1,
       "stormLevel": "低中",
-      "buildTimeSeconds": 300,
+      "buildTimeSeconds": 180,
       "shipSpeedFormula": "=C3/5"
     },
     {
@@ -89,14 +89,14 @@
       "shipWeightDisplay": 140,
       "initialDistance": 420,
       "shipSpeedDisplay": 84,
-      "basePullForce": 24,
-      "baseItemCount": 8,
+      "basePullForce": 14,
+      "baseItemCount": 1,
       "minRandomItemCount": 34,
       "minTotalItemWeight": 43,
       "recommendedWeightKg": 30,
       "itemWeightCoefficient": 1.05392156862745,
       "stormLevel": "中",
-      "buildTimeSeconds": 300,
+      "buildTimeSeconds": 180,
       "shipSpeedFormula": "=C4/5"
     },
     {
@@ -104,14 +104,14 @@
       "shipWeightDisplay": 160,
       "initialDistance": 480,
       "shipSpeedDisplay": 96,
-      "basePullForce": 26,
-      "baseItemCount": 9,
+      "basePullForce": 16,
+      "baseItemCount": 1.1,
       "minRandomItemCount": 36,
       "minTotalItemWeight": 57,
       "recommendedWeightKg": 40,
       "itemWeightCoefficient": 1.31944444444444,
       "stormLevel": "中高",
-      "buildTimeSeconds": 300,
+      "buildTimeSeconds": 180,
       "shipSpeedFormula": "=C5/5"
     },
     {
@@ -119,14 +119,14 @@
       "shipWeightDisplay": 180,
       "initialDistance": 540,
       "shipSpeedDisplay": 108,
-      "basePullForce": 28,
-      "baseItemCount": 10,
+      "basePullForce": 18,
+      "baseItemCount": 1.2,
       "minRandomItemCount": 38,
       "minTotalItemWeight": 71,
       "recommendedWeightKg": 50,
       "itemWeightCoefficient": 1.55701754385965,
       "stormLevel": "高",
-      "buildTimeSeconds": 300,
+      "buildTimeSeconds": 180,
       "shipSpeedFormula": "=C6/5"
     },
     {
@@ -134,14 +134,14 @@
       "shipWeightDisplay": 200,
       "initialDistance": 600,
       "shipSpeedDisplay": 120,
-      "basePullForce": 30,
-      "baseItemCount": 11,
+      "basePullForce": 20,
+      "baseItemCount": 1.3,
       "minRandomItemCount": 40,
       "minTotalItemWeight": 84,
       "recommendedWeightKg": 60,
       "itemWeightCoefficient": 1.75,
       "stormLevel": "高",
-      "buildTimeSeconds": 300,
+      "buildTimeSeconds": 180,
       "shipSpeedFormula": "=C7/5"
     },
     {
@@ -149,14 +149,14 @@
       "shipWeightDisplay": 220,
       "initialDistance": 660,
       "shipSpeedDisplay": 132,
-      "basePullForce": 32,
-      "baseItemCount": 12,
+      "basePullForce": 22,
+      "baseItemCount": 1.4,
       "minRandomItemCount": 42,
       "minTotalItemWeight": 96,
       "recommendedWeightKg": 70,
       "itemWeightCoefficient": 1.9047619047619,
       "stormLevel": "高",
-      "buildTimeSeconds": 300,
+      "buildTimeSeconds": 180,
       "shipSpeedFormula": "=C8/5"
     },
     {
@@ -164,14 +164,14 @@
       "shipWeightDisplay": 240,
       "initialDistance": 720,
       "shipSpeedDisplay": 144,
-      "basePullForce": 34,
-      "baseItemCount": 13,
+      "basePullForce": 24,
+      "baseItemCount": 1.5,
       "minRandomItemCount": 44,
       "minTotalItemWeight": 108,
       "recommendedWeightKg": 80,
       "itemWeightCoefficient": 2.04545454545455,
       "stormLevel": "高",
-      "buildTimeSeconds": 300,
+      "buildTimeSeconds": 180,
       "shipSpeedFormula": "=C9/5"
     },
     {
@@ -179,14 +179,14 @@
       "shipWeightDisplay": 260,
       "initialDistance": 780,
       "shipSpeedDisplay": 156,
-      "basePullForce": 36,
-      "baseItemCount": 14,
+      "basePullForce": 26,
+      "baseItemCount": 1.6,
       "minRandomItemCount": 46,
       "minTotalItemWeight": 120,
       "recommendedWeightKg": 90,
       "itemWeightCoefficient": 2.17391304347826,
       "stormLevel": "高",
-      "buildTimeSeconds": 300,
+      "buildTimeSeconds": 180,
       "shipSpeedFormula": "=C10/5"
     },
     {
@@ -194,14 +194,14 @@
       "shipWeightDisplay": 280,
       "initialDistance": 840,
       "shipSpeedDisplay": 168,
-      "basePullForce": 38,
-      "baseItemCount": 15,
+      "basePullForce": 28,
+      "baseItemCount": 1.7,
       "minRandomItemCount": 48,
       "minTotalItemWeight": 132,
       "recommendedWeightKg": 100,
       "itemWeightCoefficient": 2.29166666666667,
       "stormLevel": "高",
-      "buildTimeSeconds": 300,
+      "buildTimeSeconds": 180,
       "shipSpeedFormula": "=C11/5"
     }
   ]

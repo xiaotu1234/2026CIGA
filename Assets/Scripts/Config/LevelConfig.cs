@@ -21,6 +21,8 @@ namespace BrokenAnchor.Config
         public float itemWeightCoefficient = 1f;
         public string stormLevel = "";
         public float buildTimeSeconds = 0f;
+        public float maxItemSpeed = 0f;
+        public float underwaterRightForce = 0f;
         public float fallSpeedSoftLimitMetersPerSecond = 4f;
         public float surfaceTensionCoefficient = 0.02f;
         public float forceCoefficient = 1f;

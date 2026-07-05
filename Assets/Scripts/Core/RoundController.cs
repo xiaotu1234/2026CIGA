@@ -43,7 +43,7 @@ namespace BrokenAnchor.Core
             materials = PrototypeCatalog.CreateMaterials(level);
             currentBuild = null;
             briefingView.Bind(level, materials);
-            buildView.Bind(materials, OnBuildSubmitted);
+            buildView.Bind(level, materials, OnBuildSubmitted);
             flow.Show(GameView.StartBriefing);
         }
 
@@ -79,6 +79,11 @@ namespace BrokenAnchor.Core
 
         public void ShowBuild()
         {
+            if (currentBuild != null)
+            {
+                buildView.ResumeEditing();
+            }
+
             flow.Show(GameView.Build);
         }
 
@@ -86,6 +91,7 @@ namespace BrokenAnchor.Core
         {
             if (currentBuild != null)
             {
+                buildView.ResumeEditing();
                 flow.Show(GameView.Build);
             }
         }

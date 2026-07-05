@@ -11,6 +11,7 @@ namespace BrokenAnchor.Config
 
         [Tooltip("【已生效】材料显示名称。会显示在材料栏按钮、材料本体标签和模拟画面标签中；可用换行区分英文名和中文名。")]
         public string displayName;
+        public string materialName;
 
         [Tooltip("【已生效】材料在拼装界面的 2D 显示尺寸，单位为 UI 像素。影响显示、模拟缩放和无 Collider 时的贴合兜底判定。")]
         public Vector2 size;
@@ -55,6 +56,7 @@ namespace BrokenAnchor.Config
         {
             id = "material";
             displayName = "Material";
+            materialName = "";
             size = new Vector2(100, 80);
             weight = 50f;
             density = 1f;
@@ -84,10 +86,12 @@ namespace BrokenAnchor.Config
             float gripCoeff,
             Color color,
             bool hasHookShape = false,
-            string prefabAssetPath = null)
+            string prefabAssetPath = null,
+            string materialName = "")
         {
             this.id = id;
             this.displayName = displayName;
+            this.materialName = materialName;
             this.size = size;
             this.weight = weight;
             this.density = density;
@@ -120,7 +124,8 @@ namespace BrokenAnchor.Config
                 gripCoeff,
                 color,
                 hasHookShape,
-                string.IsNullOrEmpty(overridePrefabAssetPath) ? prefabAssetPath : overridePrefabAssetPath);
+                string.IsNullOrEmpty(overridePrefabAssetPath) ? prefabAssetPath : overridePrefabAssetPath,
+                materialName);
         }
 
         private static string GetDefaultPrefabAssetPath(string id)

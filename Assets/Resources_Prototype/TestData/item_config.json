@@ -1,7 +1,7 @@
 {
-  "sourceWorkbook": "excel.xlsx",
-  "generatedAt": "2026-07-05",
-  "note": "Converted from user-provided Excel and wired into prototype runtime logic.",
+  "sourceWorkbook": "Assets/Excel/excel.xlsx",
+  "generatedAt": "2026-07-05T01:16:05Z",
+  "note": "Item source weight is stored in kilograms and used directly by gameplay and UI.",
   "sourceSheet": "item",
   "columns": [
     {
@@ -11,6 +11,10 @@
     {
       "key": "itemName",
       "sourceHeader": "道具名字"
+    },
+    {
+      "key": "materialName",
+      "sourceHeader": "道具材质"
     },
     {
       "key": "prefab",
@@ -49,6 +53,7 @@
     {
       "itemId": 1,
       "itemName": "扎小人",
+      "materialName": "木头",
       "prefab": "huh",
       "weightKg": 0.2,
       "defense": 105,
@@ -61,6 +66,7 @@
     {
       "itemId": 2,
       "itemName": "冰红茶",
+      "materialName": "塑料",
       "prefab": "man",
       "weightKg": 0.42,
       "defense": 60,
@@ -73,6 +79,7 @@
     {
       "itemId": 3,
       "itemName": "飞碟",
+      "materialName": "合金",
       "prefab": "nokia",
       "weightKg": 4.6,
       "defense": 416,
@@ -85,6 +92,7 @@
     {
       "itemId": 4,
       "itemName": "旧水管（弯、短）",
+      "materialName": "金属",
       "prefab": "shuiguan",
       "weightKg": 0.42,
       "defense": 416,
@@ -97,6 +105,7 @@
     {
       "itemId": 5,
       "itemName": "旧水管（弯、长）",
+      "materialName": "金属",
       "prefab": "xiaobu",
       "weightKg": 0.73,
       "defense": 416,
@@ -109,6 +118,7 @@
     {
       "itemId": 6,
       "itemName": "旧水管（直、短）",
+      "materialName": "金属",
       "prefab": "xiaomei",
       "weightKg": 0.42,
       "defense": 416,
@@ -121,6 +131,7 @@
     {
       "itemId": 7,
       "itemName": "旧水管（直、长）",
+      "materialName": "金属",
       "prefab": "huh",
       "weightKg": 0.73,
       "defense": 416,
@@ -133,6 +144,7 @@
     {
       "itemId": 8,
       "itemName": "烂靴子",
+      "materialName": "布",
       "prefab": "man",
       "weightKg": 0.61,
       "defense": 19,
@@ -145,6 +157,7 @@
     {
       "itemId": 9,
       "itemName": "船锚玩具",
+      "materialName": "塑料",
       "prefab": "nokia",
       "weightKg": 0.2,
       "defense": 60,
@@ -157,6 +170,7 @@
     {
       "itemId": 10,
       "itemName": "一罐鱼饵",
+      "materialName": "金属",
       "prefab": "shuiguan",
       "weightKg": 0.42,
       "defense": 416,
@@ -169,6 +183,7 @@
     {
       "itemId": 11,
       "itemName": "假饵",
+      "materialName": "塑料",
       "prefab": "xiaobu",
       "weightKg": 0.2,
       "defense": 60,
@@ -181,6 +196,7 @@
     {
       "itemId": 12,
       "itemName": "外星人",
+      "materialName": "生物",
       "prefab": "xiaomei",
       "weightKg": 0.42,
       "defense": 84,
@@ -193,6 +209,7 @@
     {
       "itemId": 13,
       "itemName": "字母C",
+      "materialName": "文字",
       "prefab": "huh",
       "weightKg": 0.73,
       "defense": 158,
@@ -205,6 +222,7 @@
     {
       "itemId": 14,
       "itemName": "字母I",
+      "materialName": "文字",
       "prefab": "man",
       "weightKg": 0.73,
       "defense": 158,
@@ -217,6 +235,7 @@
     {
       "itemId": 15,
       "itemName": "字母G",
+      "materialName": "文字",
       "prefab": "nokia",
       "weightKg": 0.73,
       "defense": 158,
@@ -229,6 +248,7 @@
     {
       "itemId": 16,
       "itemName": "字母A",
+      "materialName": "文字",
       "prefab": "shuiguan",
       "weightKg": 0.73,
       "defense": 158,
@@ -241,6 +261,7 @@
     {
       "itemId": 17,
       "itemName": "手机",
+      "materialName": "金属",
       "prefab": "xiaobu",
       "weightKg": 0.42,
       "defense": 416,
@@ -253,6 +274,7 @@
     {
       "itemId": 18,
       "itemName": "奇异物质",
+      "materialName": "神秘物质",
       "prefab": "xiaomei",
       "weightKg": 29,
       "defense": 1,
@@ -265,6 +287,7 @@
     {
       "itemId": 19,
       "itemName": "工牌",
+      "materialName": "塑料",
       "prefab": "huh",
       "weightKg": 0.07,
       "defense": 60,
@@ -277,6 +300,7 @@
     {
       "itemId": 20,
       "itemName": "自行车",
+      "materialName": "金属",
       "prefab": "man",
       "weightKg": 2.64,
       "defense": 416,
@@ -289,6 +313,7 @@
     {
       "itemId": 21,
       "itemName": "烂眼镜",
+      "materialName": "玻璃",
       "prefab": "nokia",
       "weightKg": 0.28,
       "defense": 13,
@@ -301,6 +326,7 @@
     {
       "itemId": 22,
       "itemName": "浮木",
+      "materialName": "木头",
       "prefab": "shuiguan",
       "weightKg": 0.42,
       "defense": 105,
@@ -313,6 +339,7 @@
     {
       "itemId": 23,
       "itemName": "湿透的报纸",
+      "materialName": "纸张",
       "prefab": "xiaobu",
       "weightKg": 0.02,
       "defense": 21,
@@ -325,6 +352,7 @@
     {
       "itemId": 24,
       "itemName": "破损的CD",
+      "materialName": "塑料",
       "prefab": "xiaomei",
       "weightKg": 0.07,
       "defense": 60,
@@ -337,6 +365,7 @@
     {
       "itemId": 25,
       "itemName": "香蕉皮",
+      "materialName": "生物",
       "prefab": "huh",
       "weightKg": 0.12,
       "defense": 84,
@@ -349,6 +378,7 @@
     {
       "itemId": 26,
       "itemName": "啤酒瓶",
+      "materialName": "玻璃",
       "prefab": "man",
       "weightKg": 0.42,
       "defense": 13,
@@ -361,6 +391,7 @@
     {
       "itemId": 27,
       "itemName": "猫",
+      "materialName": "生物",
       "prefab": "nokia",
       "weightKg": 4.6,
       "defense": 84,
@@ -373,6 +404,7 @@
     {
       "itemId": 28,
       "itemName": "狗",
+      "materialName": "生物",
       "prefab": "shuiguan",
       "weightKg": 2.64,
       "defense": 84,
@@ -385,6 +417,7 @@
     {
       "itemId": 29,
       "itemName": "马",
+      "materialName": "生物",
       "prefab": "xiaobu",
       "weightKg": 4.6,
       "defense": 84,
@@ -397,6 +430,7 @@
     {
       "itemId": 30,
       "itemName": "“区”",
+      "materialName": "文字",
       "prefab": "xiaomei",
       "weightKg": 1.27,
       "defense": 158,
@@ -409,96 +443,104 @@
     {
       "itemId": 31,
       "itemName": "碎玻璃",
+      "materialName": "玻璃",
       "prefab": "huh",
       "weightKg": 0.42,
       "defense": 13,
       "health": 6,
       "sizeFactorReference": 2,
-      "guaranteedSpawnCount": 1,
+      "guaranteedSpawnCount": 0,
       "randomWeight": 285,
       "unlockLevel": 1
     },
     {
       "itemId": 32,
       "itemName": "西瓜",
+      "materialName": "生物",
       "prefab": "man",
       "weightKg": 1.52,
       "defense": 84,
       "health": 12,
       "sizeFactorReference": 3,
-      "guaranteedSpawnCount": 1,
+      "guaranteedSpawnCount": 0,
       "randomWeight": 221,
       "unlockLevel": 1
     },
     {
       "itemId": 33,
       "itemName": "黄油",
+      "materialName": "黏胶",
       "prefab": "nokia",
       "weightKg": 0.2,
       "defense": 1,
       "health": 1,
       "sizeFactorReference": 1,
-      "guaranteedSpawnCount": 1,
+      "guaranteedSpawnCount": 0,
       "randomWeight": 331,
       "unlockLevel": 1
     },
     {
       "itemId": 34,
       "itemName": "塞罗眼睛",
+      "materialName": "神秘物质",
       "prefab": "shuiguan",
       "weightKg": 0.12,
       "defense": 1,
       "health": 30,
       "sizeFactorReference": 1,
-      "guaranteedSpawnCount": 1,
+      "guaranteedSpawnCount": 0,
       "randomWeight": 366,
       "unlockLevel": 1
     },
     {
       "itemId": 35,
       "itemName": "初代奥特曼变身器",
+      "materialName": "塑料",
       "prefab": "xiaobu",
       "weightKg": 0.28,
       "defense": 60,
       "health": 8,
       "sizeFactorReference": 2,
-      "guaranteedSpawnCount": 1,
+      "guaranteedSpawnCount": 0,
       "randomWeight": 309,
       "unlockLevel": 1
     },
     {
       "itemId": 36,
       "itemName": "青蛙教练",
+      "materialName": "生物",
       "prefab": "xiaomei",
       "weightKg": 1.01,
       "defense": 84,
       "health": 12,
       "sizeFactorReference": 3,
-      "guaranteedSpawnCount": 1,
+      "guaranteedSpawnCount": 0,
       "randomWeight": 240,
       "unlockLevel": 1
     },
     {
       "itemId": 37,
       "itemName": "奶龙",
+      "materialName": "生物",
       "prefab": "huh",
       "weightKg": 0.73,
       "defense": 84,
       "health": 16,
       "sizeFactorReference": 4,
-      "guaranteedSpawnCount": 1,
+      "guaranteedSpawnCount": 0,
       "randomWeight": 256,
       "unlockLevel": 1
     },
     {
       "itemId": 38,
       "itemName": "我的刀盾",
+      "materialName": "合金",
       "prefab": "man",
       "weightKg": 1.75,
       "defense": 416,
       "health": 40,
       "sizeFactorReference": 4,
-      "guaranteedSpawnCount": 1,
+      "guaranteedSpawnCount": 0,
       "randomWeight": 215,
       "unlockLevel": 1
     }

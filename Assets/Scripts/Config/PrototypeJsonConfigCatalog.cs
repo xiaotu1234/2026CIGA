@@ -50,7 +50,9 @@ namespace BrokenAnchor.Config
                 recommendedWeightKg = Mathf.Max(0f, row.recommendedWeightKg),
                 itemWeightCoefficient = row.itemWeightCoefficient,
                 stormLevel = row.stormLevel,
-                buildTimeSeconds = row.buildTimeSeconds
+                buildTimeSeconds = row.buildTimeSeconds,
+                maxItemSpeed = Mathf.Max(0f, row.shipSpeedDisplay),
+                underwaterRightForce = Mathf.Max(0f, row.baseItemCount)
             };
 
             ApplyGlobalParameters(level);
@@ -186,6 +188,7 @@ namespace BrokenAnchor.Config
             material = prefabMaterial.Clone(prefabMaterial.prefabAssetPath);
             material.id = $"item_{row.itemId}_{NormalizeKey(row.prefab)}";
             material.displayName = string.IsNullOrEmpty(row.itemName) ? prefabMaterial.displayName : row.itemName;
+            material.materialName = string.IsNullOrEmpty(row.materialName) ? prefabMaterial.materialName : row.materialName;
             material.weight = Mathf.Max(0f, row.weightKg);
             material.adhesive = Mathf.Max(0f, row.health);
             material.tensileStrength = Mathf.Max(0f, row.defense);
@@ -311,6 +314,7 @@ namespace BrokenAnchor.Config
         {
             public int itemId;
             public string itemName;
+            public string materialName;
             public string prefab;
             public float weightKg;
             public float defense;
@@ -333,7 +337,9 @@ namespace BrokenAnchor.Config
             public int levelId;
             public float shipWeightDisplay;
             public float initialDistance;
+            public float shipSpeedDisplay;
             public float basePullForce;
+            public float baseItemCount;
             public int minRandomItemCount;
             public float minTotalItemWeight;
             public float recommendedWeightKg;
