@@ -52,7 +52,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 314887119651886920}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
   m_Name: 
@@ -94,7 +94,7 @@ GameObject:
   - component: {fileID: 8677382695429463261}
   - component: {fileID: 1263235665641088649}
   m_Layer: 0
-  m_Name: huh
+  m_Name: shuiguan4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -109,8 +109,8 @@ RectTransform:
   m_GameObject: {fileID: 2520410531213101379}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
-  m_ConstrainProportionsScale: 1
+  m_LocalScale: {x: 0.7, y: 0.7, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1245900920209090695}
   - {fileID: 6355745543125615831}
@@ -187,14 +187,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config:
-    id: huh
-    displayName: Huh
+    id: shuiguan4
+    displayName: "\u6C34\u7BA1"
     materialName: 
     size: {x: 96, y: 96}
-    weight: 10
+    weight: 54
     density: 7.6
-    adhesive: 1000
-    tensileStrength: 60
+    adhesive: 10
+    tensileStrength: 20
     shearStrength: 42
     dragCoeff: 0.55
     frictionCoeff: 0.5
@@ -202,7 +202,7 @@ MonoBehaviour:
     gripCoeff: 1.2
     color: {r: 0.74, g: 0.78, b: 0.78, a: 1}
     hasHookShape: 1
-    prefabAssetPath: Assets/Prefabs/Pieces/huh.prefab
+    prefabAssetPath: Assets/Prefabs/Pieces/shuiguan4.prefab
 --- !u!60 &1263235665641088649
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -247,13 +247,14 @@ PolygonCollider2D:
   m_AutoTiling: 0
   m_Points:
     m_Paths:
-    - - {x: -3.977161, y: 47.256287}
-      - {x: 17.227333, y: 49.51348}
-      - {x: 25.724743, y: 0.8382263}
-      - {x: 14.63147, y: -45.43155}
-      - {x: 6.244934, y: -29.62281}
-      - {x: -4.6136475, y: -47.000916}
-      - {x: -22.465271, y: -6.514105}
+    - - {x: -21.322254, y: 125.79128}
+      - {x: 18.893244, y: 126.88813}
+      - {x: 19.555878, y: -8.165588}
+      - {x: 24.91069, y: -137.21222}
+      - {x: -20.009705, y: -137.72125}
+      - {x: -19.063372, y: -97.46053}
+      - {x: -20.979187, y: -16.941105}
+      - {x: -19.522486, y: 21.076937}
   m_UseDelaunayMesh: 0
 --- !u!1 &7799550498348629064
 GameObject:
@@ -290,7 +291,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 2, y: 2}
-  m_SizeDelta: {x: 128, y: 256}
+  m_SizeDelta: {x: 135, y: 732}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3816133095320695358
 CanvasRenderer:
@@ -320,7 +321,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 2800000, guid: e68450908b19903418d1711d2e71be8b, type: 3}
+  m_Texture: {fileID: 2800000, guid: e380e5480883a184692827e1af5b8708, type: 3}
   m_UVRect:
     serializedVersion: 2
     x: 0

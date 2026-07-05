@@ -1,6 +1,6 @@
 {
   "sourceWorkbook": "Assets/Excel/excel.xlsx",
-  "generatedAt": "2026-07-05T04:36:47Z",
+  "generatedAt": "2026-07-05T05:03:10Z",
   "note": "Item source weight is stored in kilograms and used directly by gameplay and UI.",
   "sourceSheet": "item",
   "columns": [
@@ -80,13 +80,13 @@
       "itemId": 3,
       "itemName": "飞碟",
       "materialName": "合金",
-      "prefab": "nokia",
+      "prefab": "feidie",
       "weightKg": 4.6,
       "defense": 416,
       "health": 60,
       "sizeFactorReference": 6,
       "guaranteedSpawnCount": 0,
-      "randomWeight": 0,
+      "randomWeight": 176,
       "unlockLevel": 1
     },
     {
@@ -119,26 +119,26 @@
       "itemId": 6,
       "itemName": "旧水管（直、短）",
       "materialName": "金属",
-      "prefab": "xiaomei",
+      "prefab": "shuiguan3",
       "weightKg": 0.42,
       "defense": 416,
       "health": 12,
       "sizeFactorReference": 2,
       "guaranteedSpawnCount": 1,
-      "randomWeight": 0,
+      "randomWeight": 285,
       "unlockLevel": 1
     },
     {
       "itemId": 7,
       "itemName": "旧水管（直、长）",
       "materialName": "金属",
-      "prefab": "huh",
+      "prefab": "shuiguan4",
       "weightKg": 0.73,
       "defense": 416,
       "health": 24,
       "sizeFactorReference": 4,
       "guaranteedSpawnCount": 1,
-      "randomWeight": 0,
+      "randomWeight": 256,
       "unlockLevel": 1
     },
     {
@@ -442,7 +442,7 @@
     },
     {
       "itemId": 31,
-      "itemName": "碎玻璃",
+      "itemName": "Uhu",
       "materialName": "玻璃",
       "prefab": "huh",
       "weightKg": 0.42,
