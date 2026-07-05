@@ -134,7 +134,6 @@ namespace BrokenAnchor.UI
             const int maxRows = 6;
             const float gap = 8f;
             var rows = Mathf.Min(maxRows, materials.Count);
-            var columns = Mathf.CeilToInt(materials.Count / (float)maxRows);
             var areaSize = materialIconRoot.rect.size;
             if (areaSize.x <= 0f || areaSize.y <= 0f)
             {
@@ -145,27 +144,75 @@ namespace BrokenAnchor.UI
             var cellSize = Mathf.Clamp(cellHeight * 1.5f, 42f, 78f);
             var targetShortSide = cellSize * 0.78f;
             var maxLongSide = cellSize * 1.05f;
-            const float startX = 0f;
-            const float startY = 0f;
+            var rowStep = cellSize + gap;
+            var icons = new List<MaterialIconSpec>(materials.Count);
+            var columnWidths = new List<float>();
 
             for (var i = 0; i < materials.Count; i++)
             {
-                var material = materials[i];
-                var iconRect = UIBuilder.CreateRect(materialIconRoot, "MaterialIcon_" + i, new Vector2(0f, 1f), new Vector2(0f, 1f), Vector2.zero, Vector2.zero);
-                iconRect.pivot = new Vector2(0f, 1f);
-                iconRect.sizeDelta = new Vector2(cellSize, cellSize);
-                iconRect.anchoredPosition = new Vector2(startX + (i / maxRows) * (cellSize + gap), startY - (i % maxRows) * (cellSize + gap));
+                var icon = BuildMaterialIconSpec(materials[i], targetShortSide, maxLongSide);
+                icons.Add(icon);
 
-                var prefab = material == null ? null : LoadPiecePrefab(material.prefabAssetPath);
-                if (!TryCreatePrefabTextureIcon(iconRect, prefab, targetShortSide, maxLongSide) && !TryCreatePrefabSpriteIcon(iconRect, prefab, targetShortSide, maxLongSide))
+                var column = i / maxRows;
+                while (columnWidths.Count <= column)
                 {
-                    CreateFallbackIcon(iconRect, material, targetShortSide);
+                    columnWidths.Add(0f);
                 }
+
+                columnWidths[column] = Mathf.Max(columnWidths[column], icon.size.x);
+            }
+
+            var columnOffsets = new List<float>(columnWidths.Count);
+            var cursorX = 0f;
+            for (var i = 0; i < columnWidths.Count; i++)
+            {
+                columnOffsets.Add(cursorX);
+                cursorX += columnWidths[i] + gap;
+            }
+
+            for (var i = 0; i < icons.Count; i++)
+            {
+                var column = i / maxRows;
+                var row = i % maxRows;
+                CreateMaterialIcon(icons[i], i, new Vector2(columnOffsets[column], -row * rowStep));
             }
         }
 
-        private static bool TryCreatePrefabTextureIcon(RectTransform parent, GameObject prefab, float targetShortSide, float maxLongSide)
+        private struct MaterialIconSpec
         {
+            public bool useRawImage;
+            public Texture texture;
+            public Rect uvRect;
+            public Sprite sprite;
+            public Color color;
+            public Vector2 size;
+        }
+
+        private static MaterialIconSpec BuildMaterialIconSpec(MaterialConfig material, float targetShortSide, float maxLongSide)
+        {
+            var prefab = material == null ? null : LoadPiecePrefab(material.prefabAssetPath);
+
+            if (TryBuildPrefabTextureIcon(prefab, targetShortSide, maxLongSide, out var textureIcon))
+            {
+                return textureIcon;
+            }
+
+            if (TryBuildPrefabSpriteIcon(prefab, targetShortSide, maxLongSide, out var spriteIcon))
+            {
+                return spriteIcon;
+            }
+
+            return new MaterialIconSpec
+            {
+                useRawImage = false,
+                color = material == null ? Color.white : material.color,
+                size = new Vector2(targetShortSide, targetShortSide)
+            };
+        }
+
+        private static bool TryBuildPrefabTextureIcon(GameObject prefab, float targetShortSide, float maxLongSide, out MaterialIconSpec icon)
+        {
+            icon = default;
             if (prefab == null)
             {
                 return false;
@@ -177,17 +224,20 @@ namespace BrokenAnchor.UI
                 return false;
             }
 
-            var rect = CreateCenteredIconRect(parent, GetScaledIconSize(new Vector2(prefabImage.texture.width, prefabImage.texture.height), targetShortSide, maxLongSide));
-            var icon = rect.gameObject.AddComponent<RawImage>();
-            icon.texture = prefabImage.texture;
-            icon.uvRect = prefabImage.uvRect;
-            icon.color = prefabImage.color;
-            icon.raycastTarget = false;
+            icon = new MaterialIconSpec
+            {
+                useRawImage = true,
+                texture = prefabImage.texture,
+                uvRect = prefabImage.uvRect,
+                color = prefabImage.color,
+                size = GetScaledIconSize(new Vector2(prefabImage.texture.width, prefabImage.texture.height), targetShortSide, maxLongSide)
+            };
             return true;
         }
 
-        private static bool TryCreatePrefabSpriteIcon(RectTransform parent, GameObject prefab, float targetShortSide, float maxLongSide)
+        private static bool TryBuildPrefabSpriteIcon(GameObject prefab, float targetShortSide, float maxLongSide, out MaterialIconSpec icon)
         {
+            icon = default;
             if (prefab == null)
             {
                 return false;
@@ -200,30 +250,38 @@ namespace BrokenAnchor.UI
             }
 
             var spriteSize = prefabImage.sprite.rect.size;
-            var rect = CreateCenteredIconRect(parent, GetScaledIconSize(spriteSize, targetShortSide, maxLongSide));
-            var icon = rect.gameObject.AddComponent<Image>();
-            icon.sprite = prefabImage.sprite;
-            icon.color = prefabImage.color;
-            icon.preserveAspect = true;
-            icon.raycastTarget = false;
+            icon = new MaterialIconSpec
+            {
+                useRawImage = false,
+                sprite = prefabImage.sprite,
+                color = prefabImage.color,
+                size = GetScaledIconSize(spriteSize, targetShortSide, maxLongSide)
+            };
             return true;
         }
 
-        private static void CreateFallbackIcon(RectTransform parent, MaterialConfig material, float targetShortSide)
+        private void CreateMaterialIcon(MaterialIconSpec iconSpec, int index, Vector2 anchoredPosition)
         {
-            var rect = CreateCenteredIconRect(parent, new Vector2(targetShortSide, targetShortSide));
-            var icon = rect.gameObject.AddComponent<Image>();
-            icon.color = material == null ? Color.white : material.color;
-            icon.raycastTarget = false;
-        }
+            var rect = UIBuilder.CreateRect(materialIconRoot, "MaterialIcon_" + index, new Vector2(0f, 1f), new Vector2(0f, 1f), Vector2.zero, Vector2.zero);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.sizeDelta = iconSpec.size;
+            rect.anchoredPosition = anchoredPosition;
 
-        private static RectTransform CreateCenteredIconRect(RectTransform parent, Vector2 size)
-        {
-            var rect = UIBuilder.CreateRect(parent, "Icon", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = Vector2.zero;
-            return rect;
+            if (iconSpec.useRawImage)
+            {
+                var rawIcon = rect.gameObject.AddComponent<RawImage>();
+                rawIcon.texture = iconSpec.texture;
+                rawIcon.uvRect = iconSpec.uvRect;
+                rawIcon.color = iconSpec.color;
+                rawIcon.raycastTarget = false;
+                return;
+            }
+
+            var imageIcon = rect.gameObject.AddComponent<Image>();
+            imageIcon.sprite = iconSpec.sprite;
+            imageIcon.color = iconSpec.color;
+            imageIcon.preserveAspect = true;
+            imageIcon.raycastTarget = false;
         }
 
         private static Vector2 GetScaledIconSize(Vector2 sourceSize, float targetShortSide, float maxLongSide)

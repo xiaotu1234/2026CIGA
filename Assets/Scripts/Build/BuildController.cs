@@ -34,6 +34,9 @@ namespace BrokenAnchor.Build
         private const float RopeMountAreaBorderThickness = 3f;
         private const float RopeMountDetectionWidth = 70f;
         private const float RopeMountDetectionHeight = 42f;
+        private const float MaterialPileHorizontalPadding = 48f;
+        private const float MaterialPileVerticalPadding = 52f;
+        private const float MaterialPileJitterRatio = 0.22f;
 
         private RectTransform dragSurface;
         private RectTransform workspace;
@@ -109,7 +112,7 @@ namespace BrokenAnchor.Build
                 var piece = CreatePieceInstance(material);
                 piece.Initialize(material, this, dragSurface);
                 var pileRotation = GetRandomPileRotation();
-                piece.RectTransform.anchoredPosition = GetPilePosition(i);
+                piece.RectTransform.anchoredPosition = GetPilePosition(i, materials.Count);
                 piece.RectTransform.localRotation = Quaternion.Euler(0f, 0f, pileRotation);
                 piece.RectTransform.SetAsLastSibling();
 
@@ -952,22 +955,48 @@ namespace BrokenAnchor.Build
             area.sizeDelta = new Vector2(Mathf.Abs(max.x - min.x), Mathf.Abs(max.y - min.y));
         }
 
-        private Vector2 GetPilePosition(int index)
+        private Vector2 GetPilePosition(int index, int totalCount)
         {
-            var offsets = new[]
+            if (materialPile == null || dragSurface == null)
             {
-                new Vector2(-18f, 72f),
-                new Vector2(16f, 50f),
-                new Vector2(-8f, 28f),
-                new Vector2(24f, 6f),
-                new Vector2(-22f, -16f),
-                new Vector2(10f, -38f),
-                new Vector2(-4f, -60f),
-            };
+                return Vector2.zero;
+            }
 
-            var localPoint = offsets[index % offsets.Length] + new Vector2(0f, -Mathf.Floor(index / (float)offsets.Length) * 34f);
+            var rect = materialPile.rect;
+            var horizontalPadding = Mathf.Min(MaterialPileHorizontalPadding, rect.width * 0.45f);
+            var verticalPadding = Mathf.Min(MaterialPileVerticalPadding, rect.height * 0.45f);
+            var usableWidth = Mathf.Max(1f, rect.width - horizontalPadding * 2f);
+            var usableHeight = Mathf.Max(1f, rect.height - verticalPadding * 2f);
+            var count = Mathf.Max(1, totalCount);
+            var aspect = Mathf.Max(0.35f, usableWidth / Mathf.Max(1f, usableHeight));
+            var columns = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(count * aspect)));
+            var rows = Mathf.Max(1, Mathf.CeilToInt(count / (float)columns));
+            var column = index % columns;
+            var row = index / columns;
+            var cellWidth = usableWidth / columns;
+            var cellHeight = usableHeight / rows;
+            var x = rect.xMin + horizontalPadding + cellWidth * (column + 0.5f);
+            var y = rect.yMax - verticalPadding - cellHeight * (row + 0.5f);
+            var jitter = GetDeterministicPileJitter(index);
+            x += jitter.x * cellWidth * MaterialPileJitterRatio;
+            y += jitter.y * cellHeight * MaterialPileJitterRatio;
+
+            var localPoint = new Vector2(
+                Mathf.Clamp(x, rect.xMin + horizontalPadding, rect.xMax - horizontalPadding),
+                Mathf.Clamp(y, rect.yMin + verticalPadding, rect.yMax - verticalPadding));
             var worldPoint = materialPile.TransformPoint(localPoint);
             return dragSurface.InverseTransformPoint(worldPoint);
+        }
+
+        private static Vector2 GetDeterministicPileJitter(int index)
+        {
+            var seed = (uint)(index + 1) * 747796405u + 2891336453u;
+            seed = (seed >> ((int)(seed >> 28) + 4)) ^ seed;
+            var x = ((seed & 1023u) / 1023f) * 2f - 1f;
+            seed = seed * 277803737u + 3812015801u;
+            seed = (seed >> ((int)(seed >> 28) + 4)) ^ seed;
+            var y = ((seed & 1023u) / 1023f) * 2f - 1f;
+            return new Vector2(x, y);
         }
 
         private static float GetRandomPileRotation()
