@@ -2,6 +2,7 @@ using System;
 using BrokenAnchor.Simulation;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 
 namespace BrokenAnchor.UI
 {
@@ -9,6 +10,10 @@ namespace BrokenAnchor.UI
     {
         [SerializeField] private Text titleText;
         [SerializeField] private Text detailText;
+        [SerializeField] private RawImage resultVideoImage;
+        [SerializeField] private VideoPlayer resultVideoPlayer;
+        [SerializeField] private VideoClip winVideoClip;
+        [SerializeField] private VideoClip defeatVideoClip;
         [SerializeField] private Button retryButton;
         [SerializeField] private Button backBuildButton;
         [SerializeField] private Button menuButton;
@@ -68,6 +73,8 @@ namespace BrokenAnchor.UI
         public void Bind(SimulationResult result)
         {
             ResolveReferences();
+            PlayResultVideo(result.success);
+
             if (result.success)
             {
                 titleText.text = result.narrowSuccess ? "勉强成功" : "稳住了";
@@ -93,6 +100,64 @@ namespace BrokenAnchor.UI
             detailText.text = text;
         }
 
+        private void OnDisable()
+        {
+            if (resultVideoPlayer == null)
+            {
+                return;
+            }
+
+            resultVideoPlayer.prepareCompleted -= OnResultVideoPrepared;
+            resultVideoPlayer.Stop();
+        }
+
+        private void PlayResultVideo(bool success)
+        {
+            if (resultVideoPlayer == null)
+            {
+                Debug.LogWarning("ResultView prefab is missing ResultVideoPlayer. Result video will be hidden.");
+                return;
+            }
+
+            var clip = success ? winVideoClip : defeatVideoClip;
+            if (clip == null)
+            {
+                Debug.LogWarning(success
+                    ? "ResultView prefab is missing win video clip. Result video will be hidden."
+                    : "ResultView prefab is missing defeat video clip. Result video will be hidden.");
+                resultVideoPlayer.Stop();
+                if (resultVideoImage != null)
+                {
+                    resultVideoImage.enabled = false;
+                }
+
+                return;
+            }
+
+            if (resultVideoImage != null)
+            {
+                resultVideoImage.enabled = true;
+                resultVideoImage.texture = null;
+            }
+
+            resultVideoPlayer.Stop();
+            resultVideoPlayer.clip = clip;
+            resultVideoPlayer.isLooping = true;
+            resultVideoPlayer.prepareCompleted -= OnResultVideoPrepared;
+            resultVideoPlayer.prepareCompleted += OnResultVideoPrepared;
+            resultVideoPlayer.Prepare();
+        }
+
+        private void OnResultVideoPrepared(VideoPlayer player)
+        {
+            if (resultVideoImage != null)
+            {
+                resultVideoImage.texture = player.texture;
+            }
+
+            player.Play();
+        }
+
         private void BindGeneratedButtonClickEvents()
         {
             retryButton.onClick.AddListener(OnRetryButtonClicked);
@@ -104,6 +169,8 @@ namespace BrokenAnchor.UI
         {
             titleText = titleText != null ? titleText : FindChildComponent<Text>("Title");
             detailText = detailText != null ? detailText : FindChildComponent<Text>("Detail");
+            resultVideoImage = resultVideoImage != null ? resultVideoImage : FindChildComponent<RawImage>("ResultVideoPlayer");
+            resultVideoPlayer = resultVideoPlayer != null ? resultVideoPlayer : FindChildComponent<VideoPlayer>("ResultVideoPlayer");
             retryButton = retryButton != null ? retryButton : FindChildComponent<Button>("RetryButton");
             backBuildButton = backBuildButton != null ? backBuildButton : FindChildComponent<Button>("BackBuildButton");
             menuButton = menuButton != null ? menuButton : FindChildComponent<Button>("MenuButton");
