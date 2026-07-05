@@ -12,6 +12,7 @@ namespace BrokenAnchor.Build
     {
         private readonly List<AnchorPiece> materialPieces = new List<AnchorPiece>();
         private readonly Dictionary<AnchorPiece, Vector2> pilePositions = new Dictionary<AnchorPiece, Vector2>();
+        private readonly Dictionary<AnchorPiece, float> pileRotations = new Dictionary<AnchorPiece, float>();
         private readonly List<AnchorPiece> pieces = new List<AnchorPiece>();
         private readonly List<AttachJoint> joints = new List<AttachJoint>();
         private readonly List<Image> jointLines = new List<Image>();
@@ -101,12 +102,14 @@ namespace BrokenAnchor.Build
                 var material = materials[i];
                 var piece = CreatePieceInstance(material);
                 piece.Initialize(material, this, dragSurface);
+                var pileRotation = GetRandomPileRotation();
                 piece.RectTransform.anchoredPosition = GetPilePosition(i);
-                piece.RectTransform.localRotation = Quaternion.Euler(0f, 0f, GetPileRotation(i));
+                piece.RectTransform.localRotation = Quaternion.Euler(0f, 0f, pileRotation);
                 piece.RectTransform.SetAsLastSibling();
 
                 materialPieces.Add(piece);
                 pilePositions[piece] = piece.RectTransform.anchoredPosition;
+                pileRotations[piece] = pileRotation;
             }
 
             UpdateRisks();
@@ -257,7 +260,7 @@ namespace BrokenAnchor.Build
                 if (piece != null && pilePositions.TryGetValue(piece, out var pilePosition))
                 {
                     piece.RectTransform.anchoredPosition = pilePosition;
-                    piece.RectTransform.localRotation = Quaternion.Euler(0f, 0f, GetPileRotation(i));
+                    piece.RectTransform.localRotation = Quaternion.Euler(0f, 0f, GetPileRotation(piece));
                     piece.RectTransform.localScale = Vector3.one;
                     piece.SetSelected(false);
                 }
@@ -984,10 +987,14 @@ namespace BrokenAnchor.Build
             return dragSurface.InverseTransformPoint(worldPoint);
         }
 
-        private static float GetPileRotation(int index)
+        private static float GetRandomPileRotation()
         {
-            var rotations = new[] { -8f, 5f, -3f, 9f, -6f, 2f, 7f };
-            return rotations[index % rotations.Length];
+            return UnityEngine.Random.Range(-180f, 180f);
+        }
+
+        private float GetPileRotation(AnchorPiece piece)
+        {
+            return pileRotations.TryGetValue(piece, out var rotation) ? rotation : 0f;
         }
 
         private bool IsPieceInWorkspace(AnchorPiece piece)
@@ -1153,11 +1160,7 @@ namespace BrokenAnchor.Build
                 piece.RectTransform.anchoredPosition = pilePosition;
             }
 
-            var materialIndex = materialPieces.IndexOf(piece);
-            if (materialIndex >= 0)
-            {
-                piece.RectTransform.localRotation = Quaternion.Euler(0f, 0f, GetPileRotation(materialIndex));
-            }
+            piece.RectTransform.localRotation = Quaternion.Euler(0f, 0f, GetPileRotation(piece));
 
             piece.RectTransform.localScale = Vector3.one;
             Physics2D.SyncTransforms();
@@ -1617,6 +1620,7 @@ namespace BrokenAnchor.Build
 
             materialPieces.Clear();
             pilePositions.Clear();
+            pileRotations.Clear();
         }
     }
 }
