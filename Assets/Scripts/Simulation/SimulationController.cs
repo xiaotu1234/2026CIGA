@@ -26,6 +26,8 @@ namespace BrokenAnchor.Simulation
             public bool waterImpactTriggered;
             public float waterImpactFeedbackRemaining;
             public float unstickCooldown;
+            public bool loneSpinStarted;
+            public float loneSpinDirection;
         }
 
         private class SeabedSegment
@@ -97,6 +99,11 @@ namespace BrokenAnchor.Simulation
         private const float RopePullForceMultiplier = 1f;
         private const float RopePullBaseForce = 8f;
         private const float RopePullForcePerCurrent = 1.4f;
+        private const float LoneRopePieceTorqueMultiplier = 6f;
+        private const float LoneRopePieceAngularDrag = 0.02f;
+        private const float LoneRopePieceInitialAngularSpeed = 960f;
+        private const float LoneRopePieceSustainTorque = 2.5f;
+        private const float LoneRopePieceMaxAngularSpeed = 1440f;
         private const float DragAssistForce = 10f;
         private const float DragAssistMinSpeedPixels = 70f;
         private const float DragAssistClimbForce = 5f;
@@ -118,10 +125,16 @@ namespace BrokenAnchor.Simulation
         private const float AntiLiftDragMaxAcceleration = 18f;
         private const float AntiLiftMinUpwardSpeedPixels = 80f;
         private const float AntiLiftStartHeightPixels = 30f;
+        private const float PiecePhysicsFrictionMin = 0.05f;
+        private const float PiecePhysicsFrictionMax = 1.5f;
+        private const float GameplayFrictionMin = 0.1f;
+        private const float GameplayFrictionMax = 0.4f;
+        private const float SeabedFrictionGameplayScale = 3f;
+        private const float SeabedFrictionVelocityDamping = 6.5f;
+        private const float SeabedStaticFrictionSpeedPixels = 18f;
         private const float MaxLiftWaterDepthRatio = 1f / 3f;
         private const float JointStrengthMultiplier = 3f;
         private const float JointBreakTorqueScale = 0.035f;
-        private const float RigidJointFrequency = 55f;
         private const float RigidJointDampingRatio = 1f;
         private const float DebrisFlySpeedPixels = 620f;
         private const float DebrisFlyUpSpeedPixels = 260f;
@@ -130,7 +143,8 @@ namespace BrokenAnchor.Simulation
         private const int JointHealthDisplayLimit = 10;
         private const float SurfaceY = 130f;
         private const float CameraAnchorTargetY = 35f;
-        private const float MaxCameraOffsetY = 1250f;
+        private const float SeabedCameraAnchorTargetY = -125f;
+        private const float MaxCameraOffsetY = 2550f;
         private const float SeabedSegmentLength = 36f;
         private const float SeabedVisualThickness = 100f;
         private const float SeabedColliderRadius = 0.06f;
@@ -141,9 +155,11 @@ namespace BrokenAnchor.Simulation
         private const float SeabedRightSpawnPadding = 900f;
         private const float SeabedLeftDespawnPadding = 260f;
         private const float SeabedRightDespawnPadding = 960f;
-        private const float SeabedMinY = -1172f;
-        private const float SeabedMaxY = -890f;
-        private const float SeabedMaxStepY = 14f;
+        // Move the entire old 282 px seabed profile downward without scaling its slopes.
+        private const float WaterDepthIncreasePixels = 1161f;
+        private const float SeabedMinY = -2333f;
+        private const float SeabedMaxY = -2051f;
+        private const float SeabedMaxStepY = 7f;
 
         private static readonly Vector2 InitialAnchorPosition = new Vector2(-330f, SurfaceY);
 
@@ -232,7 +248,9 @@ namespace BrokenAnchor.Simulation
                 ApplyAntiLiftResistance();
                 ClampLiftHeightToWaterDepth();
                 ApplyUnderwaterRightForceAndSpeedLimit();
+                ApplySeabedFrictionResistance(deltaTime);
                 SyncJointBreakStates();
+                ApplyLoneRopePieceSpin();
                 ApplyAnchorDrivenShipMotion(deltaTime);
                 SyncVisualsFromPhysics();
                 UpdateSeabedTerrain(deltaTime);
@@ -273,10 +291,8 @@ namespace BrokenAnchor.Simulation
                 return;
             }
 
-            piece.body.AddForce(Vector2.up * impactImpulse * piece.body.mass, ForceMode2D.Impulse);
-            piece.waterImpactFeedbackRemaining = WaterImpactFeedbackDuration;
-            var reboundSpeed = Mathf.Clamp(impactImpulse * WaterImpactReboundSpeedFactor, WaterImpactMinReboundSpeed, WaterImpactMaxReboundSpeed);
-            piece.body.velocity = new Vector2(piece.body.velocity.x, Mathf.Max(piece.body.velocity.y, reboundSpeed));
+            var dampedDownwardVelocity = Mathf.Min(piece.body.velocity.y * 0.35f, 0f);
+            piece.body.velocity = new Vector2(piece.body.velocity.x, dampedDownwardVelocity);
         }
 
         private void ApplyWaterImpactMotionFeedback(SimulatedPiece piece)
@@ -354,7 +370,80 @@ namespace BrokenAnchor.Simulation
             }
 
             var pullForce = Mathf.Max(0f, level.currentForceBase) * Mathf.Max(0f, level.forceCoefficient);
-            tiePiece.body.AddForceAtPosition(GetRopePullDirection() * pullForce * tiePiece.body.mass, GetRopeAttachPhysicsPosition(tiePiece), ForceMode2D.Force);
+            var body = tiePiece.body;
+            var force = Vector2.right * pullForce * body.mass;
+            var attachPosition = GetRopeAttachPhysicsPosition(tiePiece);
+            body.AddForceAtPosition(force, attachPosition, ForceMode2D.Force);
+
+            if (IsLoneRopePiece(tiePiece))
+            {
+                var lever = attachPosition - body.worldCenterOfMass;
+                var originalTorque = lever.x * force.y - lever.y * force.x;
+                body.AddTorque(originalTorque * (LoneRopePieceTorqueMultiplier - 1f), ForceMode2D.Force);
+                body.angularDrag = LoneRopePieceAngularDrag;
+            }
+        }
+
+        private bool IsLoneRopePiece(SimulatedPiece tiePiece)
+        {
+            if (tiePiece == null || build == null)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < build.joints.Count; i++)
+            {
+                var joint = build.joints[i];
+                if (joint.isBroken)
+                {
+                    continue;
+                }
+
+                if (joint.pieceA == tiePiece.source || joint.pieceB == tiePiece.source)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void ApplyLoneRopePieceSpin()
+        {
+            if (!anchorOnSeabed)
+            {
+                return;
+            }
+
+            var tiePiece = GetRopeTieSimPiece();
+            if (!IsLoneRopePiece(tiePiece) || tiePiece.body == null)
+            {
+                if (tiePiece != null)
+                {
+                    tiePiece.loneSpinStarted = false;
+                    tiePiece.loneSpinDirection = 0f;
+                }
+
+                return;
+            }
+
+            var body = tiePiece.body;
+            body.angularDrag = LoneRopePieceAngularDrag;
+
+            if (!tiePiece.loneSpinStarted)
+            {
+                tiePiece.loneSpinDirection = body.angularVelocity > 0f ? 1f : -1f;
+                body.angularVelocity = tiePiece.loneSpinDirection * LoneRopePieceInitialAngularSpeed;
+                tiePiece.loneSpinStarted = true;
+            }
+
+            body.AddTorque(
+                tiePiece.loneSpinDirection * LoneRopePieceSustainTorque * body.mass,
+                ForceMode2D.Force);
+            body.angularVelocity = Mathf.Clamp(
+                body.angularVelocity,
+                -LoneRopePieceMaxAngularSpeed,
+                LoneRopePieceMaxAngularSpeed);
         }
 
         private void ApplyUnderwaterRightForceAndSpeedLimit()
@@ -417,11 +506,13 @@ namespace BrokenAnchor.Simulation
             var body = tiePiece.body;
             var bodyX = ToUiPosition(body.position).x;
             var tangent = GetSeabedForwardTangent(bodyX);
-            body.AddForce(tangent * DragAssistForce * body.mass * Mathf.Max(0f, level.forceCoefficient), ForceMode2D.Force);
+            var friction01 = GetSeabedFriction01(tiePiece);
+            var assistScale = Mathf.Lerp(1f, 0.18f, friction01);
+            body.AddForce(tangent * DragAssistForce * assistScale * body.mass * Mathf.Max(0f, level.forceCoefficient), ForceMode2D.Force);
 
             var horizontalSpeedPixels = body.velocity.x * InversePhysicsScale;
             var forwardSpeed = Vector2.Dot(body.velocity, tangent);
-            var minSpeed = DragAssistMinSpeedPixels * PhysicsScale;
+            var minSpeed = DragAssistMinSpeedPixels * Mathf.Lerp(1f, 0.08f, friction01) * PhysicsScale;
             if (tangent.y > 0f && forwardSpeed < minSpeed)
             {
                 body.velocity += tangent * (minSpeed - forwardSpeed);
@@ -434,7 +525,7 @@ namespace BrokenAnchor.Simulation
             if (horizontalSpeedPixels < DragAssistStuckSpeedPixels)
             {
                 var climbDirection = tangent.y > 0f ? tangent : Vector2.up;
-                body.AddForce(climbDirection * DragAssistClimbForce * body.mass, ForceMode2D.Force);
+                body.AddForce(climbDirection * DragAssistClimbForce * assistScale * body.mass, ForceMode2D.Force);
                 NudgeTiePieceAboveSeabed(tiePiece);
             }
 
@@ -507,9 +598,11 @@ namespace BrokenAnchor.Simulation
 
                 var bodyX = ToUiPosition(body.position).x;
                 var tangent = GetSeabedForwardTangent(bodyX);
-                var minForwardSpeed = Mathf.Max(SeabedUnstickForwardSpeedPixels * PhysicsScale, body.velocity.x);
+                var friction01 = GetSeabedFriction01(piece);
+                var unstickScale = Mathf.Lerp(1f, 0.12f, friction01);
+                var minForwardSpeed = Mathf.Max(SeabedUnstickForwardSpeedPixels * unstickScale * PhysicsScale, body.velocity.x);
                 var forwardSpeed = Vector2.Dot(body.velocity, tangent);
-                var minUpSpeed = SeabedUnstickUpSpeedPixels * PhysicsScale;
+                var minUpSpeed = SeabedUnstickUpSpeedPixels * unstickScale * PhysicsScale;
                 if (forwardSpeed < minForwardSpeed)
                 {
                     body.velocity += tangent * (minForwardSpeed - forwardSpeed);
@@ -520,6 +613,65 @@ namespace BrokenAnchor.Simulation
                     Mathf.Max(body.velocity.y, minUpSpeed));
                 piece.unstickCooldown = SeabedUnstickCooldownSeconds;
             }
+        }
+
+        private void ApplySeabedFrictionResistance(float deltaTime)
+        {
+            if (!anchorOnSeabed || deltaTime <= 0f)
+            {
+                return;
+            }
+
+            for (var i = 0; i < simulatedPieces.Count; i++)
+            {
+                var piece = simulatedPieces[i];
+                if (piece.detachedDebris || !piece.grounded)
+                {
+                    continue;
+                }
+
+                var body = piece.body;
+                var friction = GetEffectiveSeabedFriction(piece);
+                var maxDelta = friction * SeabedFrictionVelocityDamping * deltaTime;
+                var velocity = body.velocity;
+                velocity.x = Mathf.MoveTowards(velocity.x, 0f, maxDelta);
+
+                var staticThreshold = SeabedStaticFrictionSpeedPixels * PhysicsScale * friction;
+                if (Mathf.Abs(velocity.x) <= staticThreshold)
+                {
+                    velocity.x = 0f;
+                }
+
+                body.velocity = velocity;
+            }
+        }
+
+        private float GetSeabedFriction01(SimulatedPiece piece)
+        {
+            var pieceFriction = GetPieceFriction(piece);
+            var material01 = Mathf.InverseLerp(GameplayFrictionMin, GameplayFrictionMax, pieceFriction);
+            var seabed01 = Mathf.InverseLerp(0.25f, 0.7f, GetSeabedFriction());
+            return Mathf.Clamp01(material01 * 0.75f + seabed01 * 0.25f);
+        }
+
+        private float GetEffectiveSeabedFriction(SimulatedPiece piece)
+        {
+            return Mathf.Clamp(GetPieceFriction(piece) * GetSeabedFriction() * SeabedFrictionGameplayScale, PiecePhysicsFrictionMin, PiecePhysicsFrictionMax);
+        }
+
+        private float GetPieceFriction(SimulatedPiece piece)
+        {
+            if (piece != null && piece.source != null && piece.source.Config != null)
+            {
+                return Mathf.Max(0f, piece.source.Config.frictionCoeff);
+            }
+
+            return pieceMaterial == null ? 0.65f : Mathf.Max(0f, pieceMaterial.friction);
+        }
+
+        private float GetSeabedFriction()
+        {
+            return level == null ? 0.7f : Mathf.Max(0f, level.seabedPhysicsFrictionCoefficient);
         }
 
         private void LiftPieceAboveSeabed(SimulatedPiece piece)
@@ -580,7 +732,8 @@ namespace BrokenAnchor.Simulation
 
                 var body = piece.body;
                 var seabedY = GetHighestSeabedHeightUnderPiece(piece);
-                var maxLiftHeight = Mathf.Max(0f, (SurfaceY - seabedY) * MaxLiftWaterDepthRatio);
+                var gameplayDepthPixels = Mathf.Max(1f, SurfaceY - seabedY - WaterDepthIncreasePixels);
+                var maxLiftHeight = gameplayDepthPixels * MaxLiftWaterDepthRatio;
                 var liftHeight = GetColliderBottomUi(piece) - seabedY;
                 if (liftHeight <= maxLiftHeight)
                 {
@@ -925,8 +1078,8 @@ namespace BrokenAnchor.Simulation
         {
             var x = ToUiPosition(piece.body.position).x;
             var seabedY = GetSeabedHeight(x);
-            var waterDepthPixels = Mathf.Max(1f, SurfaceY - seabedY);
-            var releaseHeight = seabedY + waterDepthPixels * RopeReleaseWaterDepthRatio;
+            var gameplayDepthPixels = Mathf.Max(1f, SurfaceY - seabedY - WaterDepthIncreasePixels);
+            var releaseHeight = seabedY + gameplayDepthPixels * RopeReleaseWaterDepthRatio;
             return GetColliderBottomUi(piece) > releaseHeight;
         }
 
@@ -1130,8 +1283,28 @@ namespace BrokenAnchor.Simulation
                 $"\u8239\u951a\u635f\u4f24\uff1a{anchorDamage * 100f:0}%\n" +
                 $"\u65ad\u5f00\u8fde\u63a5\uff1a{brokenJoints}\n" +
                 $"\u6d77\u5e95\u63a5\u89e6\uff1a{CountSeabedContacts()} \u4e2a\u90e8\u4ef6\n" +
+                $"\u89e6\u5e95\u6469\u64e6\uff1a{GetAverageGroundedFriction01() * 100f:0}%\n" +
                 $"\u7a33\u8239\u5269\u4f59\uff1a{Mathf.Max(0f, remainingStageTime):0.0} s\n\n" +
                 BuildJointHealthDebugText();
+        }
+
+        private float GetAverageGroundedFriction01()
+        {
+            var total = 0f;
+            var count = 0;
+            for (var i = 0; i < simulatedPieces.Count; i++)
+            {
+                var piece = simulatedPieces[i];
+                if (piece.detachedDebris || !piece.grounded)
+                {
+                    continue;
+                }
+
+                total += GetSeabedFriction01(piece);
+                count++;
+            }
+
+            return count == 0 ? 0f : total / count;
         }
 
         private void UpdateCountdownText(float remainingStageTime)
@@ -1368,6 +1541,7 @@ namespace BrokenAnchor.Simulation
         {
             var scale = new Vector2(sourceScale.x * AnchorScale, sourceScale.y * AnchorScale);
             var sourceCollider = source.ShapeCollider;
+            var physicsMaterial = CreatePiecePhysicsMaterial(source.Config);
             if (sourceCollider is PolygonCollider2D sourcePolygon)
             {
                 var collider = bodyObject.AddComponent<PolygonCollider2D>();
@@ -1390,7 +1564,7 @@ namespace BrokenAnchor.Simulation
                     collider.SetPath(path, scaledPoints);
                 }
 
-                collider.sharedMaterial = pieceMaterial;
+                collider.sharedMaterial = physicsMaterial;
                 return collider;
             }
 
@@ -1399,7 +1573,7 @@ namespace BrokenAnchor.Simulation
                 var collider = bodyObject.AddComponent<BoxCollider2D>();
                 collider.offset = ScaleToPhysics(sourceBox.offset, scale);
                 collider.size = AbsScaleToPhysics(sourceBox.size, scale) * PieceColliderContactSkin;
-                collider.sharedMaterial = pieceMaterial;
+                collider.sharedMaterial = physicsMaterial;
                 return collider;
             }
 
@@ -1408,14 +1582,28 @@ namespace BrokenAnchor.Simulation
                 var collider = bodyObject.AddComponent<CircleCollider2D>();
                 collider.offset = ScaleToPhysics(sourceCircle.offset, scale);
                 collider.radius = sourceCircle.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y)) * PhysicsScale * PieceColliderContactSkin;
-                collider.sharedMaterial = pieceMaterial;
+                collider.sharedMaterial = physicsMaterial;
                 return collider;
             }
 
             var fallback = bodyObject.AddComponent<BoxCollider2D>();
             fallback.size = GetVisualSize(source.RectTransform) * AnchorScale * PhysicsScale * PieceColliderContactSkin;
-            fallback.sharedMaterial = pieceMaterial;
+            fallback.sharedMaterial = physicsMaterial;
             return fallback;
+        }
+
+        private PhysicsMaterial2D CreatePiecePhysicsMaterial(MaterialConfig config)
+        {
+            if (config == null)
+            {
+                return pieceMaterial;
+            }
+
+            return new PhysicsMaterial2D("SimulationPiece_" + config.id)
+            {
+                friction = Mathf.Clamp(config.frictionCoeff, PiecePhysicsFrictionMin, PiecePhysicsFrictionMax),
+                bounciness = 0.05f
+            };
         }
 
         private static Vector2 ScaleToPhysics(Vector2 value, Vector2 scale)
@@ -1528,12 +1716,17 @@ namespace BrokenAnchor.Simulation
                 joint.connectedBody = pieceB.body;
                 joint.autoConfigureConnectedAnchor = true;
                 joint.enableCollision = false;
-                joint.frequency = RigidJointFrequency;
+                joint.frequency = CalculateJointFrequency(sourceJoint);
                 joint.dampingRatio = RigidJointDampingRatio;
                 joint.breakForce = Mathf.Infinity;
                 joint.breakTorque = Mathf.Infinity;
                 pieceA.joints.Add(joint);
             }
+        }
+
+        private float CalculateJointFrequency(AttachJoint joint)
+        {
+            return Mathf.Max(0.01f, joint.defense * level.defenseToJointFrequencyCoefficient);
         }
 
         private float CalculateJointMaxHealth(AttachJoint joint)
@@ -1708,12 +1901,12 @@ namespace BrokenAnchor.Simulation
             seabedMaterial = new PhysicsMaterial2D("SimulationSeabed")
             {
                 friction = level == null ? 0.82f : level.seabedPhysicsFrictionCoefficient,
-                bounciness = level == null ? 0.02f : level.seabedPhysicsBouncinessCoefficient
+                bounciness = level == null ? 0.15f : level.seabedPhysicsBouncinessCoefficient
             };
 
             pieceMaterial = new PhysicsMaterial2D("SimulationPiece")
             {
-                friction = 0f,
+                friction = 0.65f,
                 bounciness = 0.05f
             };
         }
@@ -1814,7 +2007,7 @@ namespace BrokenAnchor.Simulation
                 }
             }
 
-            return -245f;
+            return -620f;
         }
 
         private void AddSeabedSegment(float startX, float? forcedStartY, float? forcedEndY)
@@ -1999,9 +2192,14 @@ namespace BrokenAnchor.Simulation
             }
 
             var targetOffsetX = InitialAnchorPosition.x - focusX;
-            var targetOffset = Mathf.Clamp(CameraAnchorTargetY - focusY, 0f, MaxCameraOffsetY);
+            var focusTargetY = anchorOnSeabed ? SeabedCameraAnchorTargetY : CameraAnchorTargetY;
+            var targetOffset = Mathf.Clamp(focusTargetY - focusY, 0f, MaxCameraOffsetY);
             cameraOffsetX = targetOffsetX;
-            cameraOffsetY = Mathf.Lerp(cameraOffsetY, targetOffset, deltaTime * 2.8f);
+            // During the long descent the camera must not lag behind the anchor.
+            // Keep smoothing only after seabed contact, where it helps settle collision jitter.
+            cameraOffsetY = anchorOnSeabed
+                ? Mathf.Lerp(cameraOffsetY, targetOffset, deltaTime * 2.8f)
+                : targetOffset;
             anchor.anchoredPosition = new Vector2(cameraOffsetX, cameraOffsetY);
             ship.anchoredPosition = new Vector2(ship.anchoredPosition.x, 150f + cameraOffsetY);
 

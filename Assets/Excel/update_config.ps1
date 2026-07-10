@@ -316,6 +316,107 @@ function Set-Property($Object, [string]$Name, $Value) {
   }
 }
 
+function Normalize-Header($Value) {
+  if ($null -eq $Value) {
+    return ""
+  }
+  return ([string]$Value -replace "\s+", "").ToLowerInvariant()
+}
+
+function Test-AutoKey($Value) {
+  if ($null -eq $Value) {
+    return $false
+  }
+  $text = [string]$Value
+  return $text -match '^[A-Za-z0-9_]+$'
+}
+
+function Get-HeaderMap($Sheets, [string]$SheetName) {
+  $map = @{}
+  if (-not $Sheets.ContainsKey($SheetName) -or -not $Sheets[$SheetName].ContainsKey(1)) {
+    return $map
+  }
+
+  foreach ($column in $Sheets[$SheetName][1].Keys) {
+    $header = Get-CellValue $Sheets $SheetName 1 $column
+    $normalized = Normalize-Header $header
+    if ($normalized) {
+      $map[$normalized] = [int]$column
+    }
+  }
+  return $map
+}
+
+function Get-ColumnSpecs($Data, $Sheets, [string]$SheetName) {
+  $specs = @()
+  $knownKeys = @{}
+  $knownHeaders = @{}
+  if ($Data.PSObject.Properties["columns"]) {
+    foreach ($column in @($Data.columns)) {
+      if ($column.key) {
+        $specs += $column
+        $knownKeys[[string]$column.key] = $true
+        if ($column.sourceHeader) {
+          $knownHeaders[(Normalize-Header $column.sourceHeader)] = $true
+        }
+      }
+    }
+  }
+
+  if ($Sheets.ContainsKey($SheetName) -and $Sheets[$SheetName].ContainsKey(1)) {
+    foreach ($column in ($Sheets[$SheetName][1].Keys | Sort-Object)) {
+      $header = Get-CellValue $Sheets $SheetName 1 $column
+      if ((Test-AutoKey $header) -and -not $knownKeys.ContainsKey([string]$header) -and -not $knownHeaders.ContainsKey((Normalize-Header $header))) {
+        $specs += [pscustomobject][ordered]@{
+          key = [string]$header
+          sourceHeader = [string]$header
+        }
+        $knownKeys[[string]$header] = $true
+      }
+    }
+  }
+
+  return @($specs)
+}
+
+function Resolve-ColumnIndex($HeaderMap, $Spec) {
+  foreach ($candidate in @($Spec.sourceHeader, $Spec.key)) {
+    $normalized = Normalize-Header $candidate
+    if ($normalized -and $HeaderMap.ContainsKey($normalized)) {
+      return [int]$HeaderMap[$normalized]
+    }
+  }
+  return $null
+}
+
+function Get-KeyColumnMap($Sheets, [string]$SheetName, $Specs) {
+  $headerMap = Get-HeaderMap $Sheets $SheetName
+  $keyToColumn = @{}
+  foreach ($spec in $Specs) {
+    $column = Resolve-ColumnIndex $headerMap $spec
+    if ($null -ne $column) {
+      $keyToColumn[[string]$spec.key] = $column
+    }
+  }
+  return $keyToColumn
+}
+
+function Get-RowValueByKey($Sheets, [string]$SheetName, [int]$Row, $KeyToColumn, [string]$Key) {
+  if (-not $KeyToColumn.ContainsKey($Key)) {
+    return $null
+  }
+  return Get-CellValue $Sheets $SheetName $Row ([int]$KeyToColumn[$Key])
+}
+
+function Test-RowHasValues($Sheets, [string]$SheetName, [int]$Row, $Columns) {
+  foreach ($column in $Columns) {
+    if ($null -ne (Get-CellValue $Sheets $SheetName $Row ([int]$column))) {
+      return $true
+    }
+  }
+  return $false
+}
+
 function Ensure-RequiredFiles([string]$ExcelPath, [string]$OutputDir) {
   if (-not (Test-Path $ExcelPath)) {
     throw "Workbook not found: $ExcelPath"
@@ -338,32 +439,28 @@ function Ensure-RequiredFiles([string]$ExcelPath, [string]$OutputDir) {
 function Export-Items($Sheets, [string]$OutputDir, [string]$SourceWorkbook, [string]$Now) {
   $data = Read-Json (Join-Path $OutputDir "item_config.json")
   $items = @()
+  $columns = Get-ColumnSpecs $data $Sheets "item"
+  $keyToColumn = Get-KeyColumnMap $Sheets "item" $columns
+  $trackedColumns = @($keyToColumn.Values)
   for ($row = 2; $row -le (Get-MaxRow $Sheets "item"); $row++) {
-    $values = for ($col = 1; $col -le 11; $col++) { Get-CellValue $Sheets "item" $row $col }
-    if (-not ($values | Where-Object { $null -ne $_ })) {
+    if (-not (Test-RowHasValues $Sheets "item" $row $trackedColumns)) {
       continue
     }
-    if ($null -eq $values[0]) {
+    if ($null -eq (Get-RowValueByKey $Sheets "item" $row $keyToColumn "itemId")) {
       continue
     }
-    $items += [pscustomobject][ordered]@{
-      itemId = $values[0]
-      itemName = $values[1]
-      materialName = $values[2]
-      prefab = $values[3]
-      weightKg = $values[4]
-      defense = $values[5]
-      health = $values[6]
-      sizeFactorReference = $values[7]
-      guaranteedSpawnCount = $values[8]
-      randomWeight = $values[9]
-      unlockLevel = $values[10]
+    $item = [ordered]@{}
+    foreach ($column in $columns) {
+      $key = [string]$column.key
+      $item[$key] = Get-RowValueByKey $Sheets "item" $row $keyToColumn $key
     }
+    $items += [pscustomobject]$item
   }
   Set-Property $data "sourceWorkbook" $SourceWorkbook
   Set-Property $data "generatedAt" $Now
   Set-Property $data "note" "Item source weight is stored in kilograms and used directly by gameplay and UI."
   Set-Property $data "sourceSheet" "item"
+  Set-Property $data "columns" $columns
   Set-Property $data "items" $items
   Write-Json (Join-Path $OutputDir "item_config.json") $data
   return $items.Count
@@ -372,34 +469,32 @@ function Export-Items($Sheets, [string]$OutputDir, [string]$SourceWorkbook, [str
 function Export-Levels($Sheets, [string]$OutputDir, [string]$SourceWorkbook, [string]$Now) {
   $data = Read-Json (Join-Path $OutputDir "level_config.json")
   $levels = @()
+  $columns = Get-ColumnSpecs $data $Sheets "level"
+  $keyToColumn = Get-KeyColumnMap $Sheets "level" $columns
+  $trackedColumns = @($keyToColumn.Values)
   for ($row = 2; $row -le (Get-MaxRow $Sheets "level"); $row++) {
-    $values = for ($col = 1; $col -le 12; $col++) { Get-CellValue $Sheets "level" $row $col }
-    if (-not ($values | Where-Object { $null -ne $_ })) {
+    if (-not (Test-RowHasValues $Sheets "level" $row $trackedColumns)) {
       continue
     }
-    if ($null -eq $values[0]) {
+    if ($null -eq (Get-RowValueByKey $Sheets "level" $row $keyToColumn "levelId")) {
       continue
     }
-    $formula = Get-CellFormula $Sheets "level" $row 4
-    $levels += [pscustomobject][ordered]@{
-      levelId = $values[0]
-      shipWeightDisplay = $values[1]
-      initialDistance = $values[2]
-      shipSpeedDisplay = $values[3]
-      basePullForce = $values[4]
-      baseItemCount = $values[5]
-      minRandomItemCount = $values[6]
-      minTotalItemWeight = $values[7]
-      recommendedWeightKg = $values[8]
-      itemWeightCoefficient = $values[9]
-      stormLevel = $values[10]
-      buildTimeSeconds = $values[11]
-      shipSpeedFormula = $formula
+    $level = [ordered]@{}
+    foreach ($column in $columns) {
+      $key = [string]$column.key
+      $level[$key] = Get-RowValueByKey $Sheets "level" $row $keyToColumn $key
     }
+    $formula = $null
+    if ($keyToColumn.ContainsKey("shipSpeedDisplay")) {
+      $formula = Get-CellFormula $Sheets "level" $row ([int]$keyToColumn["shipSpeedDisplay"])
+    }
+    $level["shipSpeedFormula"] = $formula
+    $levels += [pscustomobject]$level
   }
   Set-Property $data "sourceWorkbook" $SourceWorkbook
   Set-Property $data "generatedAt" $Now
   Set-Property $data "sourceSheet" "level"
+  Set-Property $data "columns" $columns
   Set-Property $data "levels" $levels
   Write-Json (Join-Path $OutputDir "level_config.json") $data
   return $levels.Count
@@ -407,8 +502,41 @@ function Export-Levels($Sheets, [string]$OutputDir, [string]$SourceWorkbook, [st
 
 function Export-Entries($Sheets, [string]$OutputDir, [string]$JsonName, [string]$SheetName, [int]$FirstRow, [string]$SourceWorkbook, [string]$Now) {
   $data = Read-Json (Join-Path $OutputDir $JsonName)
+  $keyToRow = @{}
+  for ($row = $FirstRow; $row -le (Get-MaxRow $Sheets $SheetName); $row++) {
+    $key = Get-CellValue $Sheets $SheetName $row 1
+    if ($key) {
+      $keyToRow[[string]$key] = $row
+    }
+  }
   for ($index = 0; $index -lt $data.entries.Count; $index++) {
-    $data.entries[$index].value = Get-CellValue $Sheets $SheetName ($FirstRow + $index) 2
+    $entry = $data.entries[$index]
+    $row = $FirstRow + $index
+    if ($entry.key -and $keyToRow.ContainsKey([string]$entry.key)) {
+      $row = [int]$keyToRow[[string]$entry.key]
+    }
+    $data.entries[$index].value = Get-CellValue $Sheets $SheetName $row 2
+  }
+  $knownKeys = @{}
+  foreach ($entry in $data.entries) {
+    if ($entry.key) {
+      $knownKeys[[string]$entry.key] = $true
+    }
+  }
+  for ($row = $FirstRow; $row -le (Get-MaxRow $Sheets $SheetName); $row++) {
+    $key = Get-CellValue $Sheets $SheetName $row 1
+    if ((Test-AutoKey $key) -and -not $knownKeys.ContainsKey([string]$key)) {
+      $entry = [ordered]@{
+        key = [string]$key
+        value = Get-CellValue $Sheets $SheetName $row 2
+      }
+      $description = Get-CellValue $Sheets $SheetName $row 3
+      if ($null -ne $description) {
+        $entry["description"] = $description
+      }
+      $data.entries += [pscustomobject]$entry
+      $knownKeys[[string]$key] = $true
+    }
   }
   $parameters = [ordered]@{}
   foreach ($entry in $data.entries) {

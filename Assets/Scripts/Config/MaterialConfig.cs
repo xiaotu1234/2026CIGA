@@ -34,7 +34,7 @@ namespace BrokenAnchor.Config
         [Tooltip("【已生效】水阻系数。影响下沉和触底阶段受到的水流横推、刚体阻尼，以及建造结果中的水阻评分。")]
         public float dragCoeff;
 
-        [Tooltip("【已生效】摩擦系数。影响模拟刚体角阻尼，以及触底拖拽时的速度衰减。")]
+        [Tooltip("【已生效】摩擦系数。影响模拟刚体角阻尼，以及物品与海底接触时的 Unity 2D 物理材质摩擦。")]
         public float frictionCoeff;
 
         [Tooltip("【预留】支撑系数。当前不参与玩法计算，后续可用于触底支撑、抗翻滚或海底受力稳定性。")]

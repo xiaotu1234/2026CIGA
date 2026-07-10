@@ -8,7 +8,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 try:
     from openpyxl import load_workbook
@@ -29,6 +29,84 @@ def clean(value: Any) -> Any:
     if isinstance(value, float) and value.is_integer():
         return int(value)
     return value
+
+
+def normalize_header(value: Any) -> str:
+    value = clean(value)
+    if value is None:
+        return ""
+    return "".join(str(value).split()).lower()
+
+
+def is_auto_key(value: Any) -> bool:
+    value = clean(value)
+    if not isinstance(value, str):
+        return False
+    if not value:
+        return False
+    return all(char.isascii() and (char.isalnum() or char == "_") for char in value)
+
+
+def read_header_map(sheet: Any) -> Dict[str, int]:
+    headers: Dict[str, int] = {}
+    for column in range(1, sheet.max_column + 1):
+        header = sheet.cell(1, column).value
+        normalized = normalize_header(header)
+        if normalized:
+            headers[normalized] = column
+    return headers
+
+
+def get_column_specs(data: Dict[str, Any], sheet: Any) -> List[Dict[str, Any]]:
+    specs: List[Dict[str, Any]] = [
+        dict(column)
+        for column in data.get("columns", [])
+        if isinstance(column, dict) and column.get("key")
+    ]
+    known_keys = {str(column["key"]) for column in specs}
+    known_headers = {
+        normalize_header(column.get("sourceHeader"))
+        for column in specs
+        if column.get("sourceHeader")
+    }
+    for column in range(1, sheet.max_column + 1):
+        header = clean(sheet.cell(1, column).value)
+        if not is_auto_key(header) or header in known_keys or normalize_header(header) in known_headers:
+            continue
+        specs.append({"key": header, "sourceHeader": header})
+        known_keys.add(str(header))
+    return specs
+
+
+def resolve_column_index(spec: Dict[str, Any], header_map: Dict[str, int]) -> Optional[int]:
+    candidates = (spec.get("sourceHeader"), spec.get("key"))
+    for candidate in candidates:
+        normalized = normalize_header(candidate)
+        if normalized and normalized in header_map:
+            return header_map[normalized]
+    return None
+
+
+def map_column_specs(data: Dict[str, Any], sheet: Any) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
+    specs = get_column_specs(data, sheet)
+    header_map = read_header_map(sheet)
+    key_to_column: Dict[str, int] = {}
+    for spec in specs:
+        column = resolve_column_index(spec, header_map)
+        if column is not None:
+            key_to_column[str(spec["key"])] = column
+    return specs, key_to_column
+
+
+def get_row_value(sheet: Any, row_index: int, key_to_column: Dict[str, int], key: str) -> Any:
+    column = key_to_column.get(key)
+    if column is None:
+        return None
+    return clean(sheet.cell(row_index, column).value)
+
+
+def row_has_values(sheet: Any, row_index: int, columns: Iterable[int]) -> bool:
+    return any(clean(sheet.cell(row_index, column).value) is not None for column in columns)
 
 
 def load_json(path: Path) -> Dict[str, Any]:
@@ -81,33 +159,26 @@ def export_items(workbook: Any, output_dir: Path, source_workbook: str, now: str
     data = load_json(output_dir / "item_config.json")
     items: List[Dict[str, Any]] = []
     sheet = workbook["item"]
+    columns, key_to_column = map_column_specs(data, sheet)
+    tracked_columns = list(key_to_column.values())
 
-    for row in sheet.iter_rows(min_row=2, values_only=True):
-        if not any(value is not None for value in row):
+    for row_index in range(2, sheet.max_row + 1):
+        if not row_has_values(sheet, row_index, tracked_columns):
             continue
-        item_id = clean(row[0] if len(row) > 0 else None)
+        item_id = get_row_value(sheet, row_index, key_to_column, "itemId")
         if item_id is None:
             continue
-        items.append(
-            {
-                "itemId": item_id,
-                "itemName": clean(row[1] if len(row) > 1 else None),
-                "materialName": clean(row[2] if len(row) > 2 else None),
-                "prefab": clean(row[3] if len(row) > 3 else None),
-                "weightKg": clean(row[4] if len(row) > 4 else None),
-                "defense": clean(row[5] if len(row) > 5 else None),
-                "health": clean(row[6] if len(row) > 6 else None),
-                "sizeFactorReference": clean(row[7] if len(row) > 7 else None),
-                "guaranteedSpawnCount": clean(row[8] if len(row) > 8 else None),
-                "randomWeight": clean(row[9] if len(row) > 9 else None),
-                "unlockLevel": clean(row[10] if len(row) > 10 else None),
-            }
-        )
+        item = {
+            str(column["key"]): get_row_value(sheet, row_index, key_to_column, str(column["key"]))
+            for column in columns
+        }
+        items.append(item)
 
     data["sourceWorkbook"] = source_workbook
     data["generatedAt"] = now
     data["note"] = "Item source weight is stored in kilograms and used directly by gameplay and UI."
     data["sourceSheet"] = "item"
+    data["columns"] = columns
     data["items"] = items
     save_json(output_dir / "item_config.json", data)
     return len(items)
@@ -124,39 +195,32 @@ def export_levels(
     levels: List[Dict[str, Any]] = []
     values_sheet = values_workbook["level"]
     formulas_sheet = formulas_workbook["level"]
+    columns, key_to_column = map_column_specs(data, values_sheet)
+    tracked_columns = list(key_to_column.values())
 
     for row_index in range(2, values_sheet.max_row + 1):
-        values = [clean(values_sheet.cell(row_index, col).value) for col in range(1, 14)]
-        if not any(value is not None for value in values):
+        if not row_has_values(values_sheet, row_index, tracked_columns):
             continue
-        if values[0] is None:
+        if get_row_value(values_sheet, row_index, key_to_column, "levelId") is None:
             continue
 
-        speed_formula = formulas_sheet.cell(row_index, 4).value
-        levels.append(
-            {
-                "levelId": values[0],
-                "shipWeightDisplay": values[1],
-                "initialDistance": values[2],
-                "shipSpeedDisplay": values[3],
-                "basePullForce": values[4],
-                "baseItemCount": values[5],
-                "minRandomItemCount": values[6],
-                "minTotalItemWeight": values[7],
-                "recommendedWeightKg": values[8],
-                "itemWeightCoefficient": values[9],
-                "stormLevel": values[10],
-                "buildTimeSeconds": values[11],
-                "waterSurfaceTensionForce": values[12],
-                "shipSpeedFormula": speed_formula
-                if isinstance(speed_formula, str) and speed_formula.startswith("=")
-                else None,
-            }
+        level = {
+            str(column["key"]): get_row_value(values_sheet, row_index, key_to_column, str(column["key"]))
+            for column in columns
+        }
+        speed_column = key_to_column.get("shipSpeedDisplay")
+        speed_formula = formulas_sheet.cell(row_index, speed_column).value if speed_column else None
+        level["shipSpeedFormula"] = (
+            speed_formula
+            if isinstance(speed_formula, str) and speed_formula.startswith("=")
+            else None
         )
+        levels.append(level)
 
     data["sourceWorkbook"] = source_workbook
     data["generatedAt"] = now
     data["sourceSheet"] = "level"
+    data["columns"] = columns
     data["levels"] = levels
     save_json(output_dir / "level_config.json", data)
     return len(levels)
@@ -174,9 +238,30 @@ def export_entries(
     data = load_json(output_dir / json_name)
     sheet = workbook[sheet_name]
     entries = data.get("entries", [])
+    key_to_row = {
+        str(clean(sheet.cell(row_index, 1).value)): row_index
+        for row_index in range(first_row, sheet.max_row + 1)
+        if clean(sheet.cell(row_index, 1).value)
+    }
 
     for index, entry in enumerate(entries, start=first_row):
-        entry["value"] = clean(sheet.cell(index, 2).value)
+        row_index = key_to_row.get(str(entry.get("key"))) if entry.get("key") else None
+        if row_index is None:
+            row_index = index
+        entry["value"] = clean(sheet.cell(row_index, 2).value)
+
+    known_keys = {entry.get("key") for entry in entries}
+    for row_index in range(first_row, sheet.max_row + 1):
+        key = clean(sheet.cell(row_index, 1).value)
+        if not is_auto_key(key) or key in known_keys:
+            continue
+        entry: Dict[str, Any] = {"key": key}
+        description = clean(sheet.cell(row_index, 3).value)
+        if description is not None:
+            entry["description"] = description
+        entry["value"] = clean(sheet.cell(row_index, 2).value)
+        entries.append(entry)
+        known_keys.add(key)
 
     data["sourceWorkbook"] = source_workbook
     data["generatedAt"] = now

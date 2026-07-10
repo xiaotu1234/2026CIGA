@@ -6,7 +6,7 @@ namespace BrokenAnchor.Config
         public int levelId = 1;
         public float shipWeight = 4200f;
         public string seaState = "急流 / 侧风";
-        public float waterDepth = 32f;
+        public float waterDepth = 64f;
         public string seabedType = "碎石沙底";
         public float dangerZoneDistance = 1000f;        // 距离危险区的初始距离
         public float stableDuration = 24f;              // 需要坚持的时间
@@ -34,7 +34,7 @@ namespace BrokenAnchor.Config
         public float healthCoefficient = 50f;
         public float defenseToJointFrequencyCoefficient = 0.025f;
         public float seabedPhysicsFrictionCoefficient = 0.7f;
-        public float seabedPhysicsBouncinessCoefficient = 0.02f;
+        public float seabedPhysicsBouncinessCoefficient = 0.15f;
         public bool showConnectionHealthDebug = true;
         public float rigidbodyMassCoefficient = 1f;
     }

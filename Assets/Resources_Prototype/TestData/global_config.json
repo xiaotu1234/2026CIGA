@@ -1,20 +1,20 @@
 {
   "sourceWorkbook": "Assets/Excel/excel.xlsx",
-  "generatedAt": "2026-07-05T06:06:39Z",
+  "generatedAt": "2026-07-10T07:30:57Z",
   "note": "Converted from user-provided Excel and wired into prototype runtime logic.",
   "sourceSheet": "global",
   "parameters": {
     "successDurationSeconds": 15,
     "fallSpeedSoftLimitMetersPerSecond": 3,
     "forceCoefficient": 1,
-    "weightDownForceCoefficient": 0.18,
-    "waterDragCoefficient": 0.1,
-    "thresholdCoefficient": 8,
+    "weightDownForceCoefficient": 0.5,
+    "waterDragCoefficient": 0.2,
+    "thresholdCoefficient": 10,
     "damageCoefficient": 0.3,
-    "healthCoefficient": 5,
-    "defenseToJointFrequencyCoefficient": 0.8,
-    "seabedPhysicsFrictionCoefficient": 0.5,
-    "seabedPhysicsBouncinessCoefficient": 0.02,
+    "healthCoefficient": 8,
+    "defenseToJointFrequencyCoefficient": 1.5,
+    "seabedPhysicsFrictionCoefficient": 0.3,
+    "seabedPhysicsBouncinessCoefficient": 2.5,
     "showConnectionHealthDebug": 1,
     "rigidbodyMassCoefficient": 1,
     "waterEntryInitialSpeed": 10
@@ -38,17 +38,17 @@
     {
       "key": "weightDownForceCoefficient",
       "description": "重量下压力系数。物品重量转换为向下力的倍率。",
-      "value": 0.18
+      "value": 0.5
     },
     {
       "key": "waterDragCoefficient",
       "description": "水阻系数。物品水阻参与速度衰减的全局倍率。",
-      "value": 0.1
+      "value": 0.2
     },
     {
       "key": "thresholdCoefficient",
       "description": "阈值系数。防御值转换为连接受力阈值的倍率。",
-      "value": 8
+      "value": 10
     },
     {
       "key": "damageCoefficient",
@@ -58,22 +58,22 @@
     {
       "key": "healthCoefficient",
       "description": "血量系数。物品健康值转换为连接最大血量的倍率。",
-      "value": 5
+      "value": 8
     },
     {
       "key": "defenseToJointFrequencyCoefficient",
       "description": "防御转关节频率系数。防御越高，Unity FixedJoint2D 越硬。",
-      "value": 0.8
+      "value": 1.5
     },
     {
       "key": "seabedPhysicsFrictionCoefficient",
       "description": "海底 Unity 物理材质摩擦系数。",
-      "value": 0.5
+      "value": 0.3
     },
     {
       "key": "seabedPhysicsBouncinessCoefficient",
       "description": "海底 Unity 物理材质弹性系数。",
-      "value": 0.02
+      "value": 2.5
     },
     {
       "key": "showConnectionHealthDebug",

@@ -234,6 +234,10 @@ namespace BrokenAnchor.Config
             material.weight = Mathf.Max(0f, row.weightKg);
             material.adhesive = Mathf.Max(0f, row.health);
             material.tensileStrength = Mathf.Max(0f, row.defense);
+            if (row.frictionCoeff > 0f)
+            {
+                material.frictionCoeff = Mathf.Clamp(row.frictionCoeff, 0.05f, 1.5f);
+            }
             return true;
         }
 
@@ -366,6 +370,7 @@ namespace BrokenAnchor.Config
             public float weightKg;
             public float defense;
             public float health;
+            public float frictionCoeff;
             public float sizeFactorReference;
             public int guaranteedSpawnCount;
             public float randomWeight;
